@@ -168,3 +168,11 @@ that flag is the whole human-in-the-loop.
 ## Error Handling - Windows CLI fix
 
 Raw `spawn("claude")` fails on Windows: npm installs `claude` as a `.cmd` shim, which Node's shell-less `spawn()` neither resolves (only `.exe` is auto-tried) nor executes (`EINVAL`, CVE-2024-27980 hardening) — so the boot probe failed and the server **silently ran MOCK mode on Windows** even with Claude Code installed. Fixed by `resolveClaude()` in `server.js`: it probes plain `claude` first (POSIX unchanged), and on Windows locates the shim via `where.exe` and directly spawns what it wraps — a sibling native `claude.exe`, or the npm package's `cli.js` run with the server's own Node. No `shell:true` anywhere, so the stdin-piped multi-line prompts remain intact. Both mode detection and the live turn spawner use the resolved CLI
+
+## Error Handling - Claude Code
+
+With the logs and journals, easy for claude code to find the root cause.
+Example screenshot:
+<img width="2880" height="1116" alt="sample02" src="https://github.com/user-attachments/assets/c0394c1a-b148-44f1-b998-fb2870a0b221" />
+
+
