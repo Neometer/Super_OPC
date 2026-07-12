@@ -1,8 +1,9 @@
 {
   "$comment": "COMPLIANCE BASELINE — the approved settings and rules for this project. The Compliance agent (audit) checks the live runtime against this file on every audit; any mismatch is reported as a policy violation. Update this file deliberately when settings legitimately change. A snapshot is copied into every run folder so the Compliance agent can read it from inside the run workspace.",
-  "version": 5,
-  "updated": "2026-07-11",
+  "version": 6,
+  "updated": "2026-07-12",
   "$comment_task_tool": "v5: always-on agents (manager, qa, audit, logger, report, finance, researcher) get the Task tool so each headless session can trigger its matching custom agent in .claude/agents/. Dynamic workers and defaults deliberately do NOT get Task.",
+  "$comment_compliance_triggers": "v6: the periodic 2-minute policy snapshot was removed and the Compliance agent (audit) now starts toggled OFF by default. When toggled ON from its tile, the full audit (agent + deterministic checkPolicy) runs only once QA has fully completed (no queued reviews, no in-flight tasks or revisions), at run end, or via the manual compliance-check button.",
 
   "agents": {
     "$comment": "Expected EFFECTIVE settings per agent (after defaults ⊕ wildcard ⊕ exact-name merge). Only the keys listed are checked. 'defaults' = the baseline every agent inherits; 'worker-*' = dynamically spawned workers.",

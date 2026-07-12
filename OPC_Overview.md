@@ -116,7 +116,8 @@ Two kinds, deliberately separated:
   `logger` (RUN_SUMMARY.md prose at stage boundaries), `qa` (reviews every worker
   output; `needs_work` auto-dispatches a revision, capped by `maxQaRetries`),
   `audit` (Compliance — cross-checks the workspace against events.jsonl and
-  policy.json), `report` (consolidates the other three into REPORT.json),
+  policy.json; toggled OFF by default — enable it on its tile to get audits),
+  `report` (consolidates the other three into REPORT.json),
   `finance` (FINANCE.md token/cost ledger from the server's deterministic tally).
 - **Task-takers**: `manager` (plans, pinned to Opus), `researcher` (standing
   expert, keeps its session across plans), and dynamic `worker-<name>` agents
@@ -138,7 +139,9 @@ compact rules. The audit prompt is deliberately NOT delegated (token cost).
    sandboxed to cwd + `--add-dir` (headless = no permission prompts).
 5. Every `task_done` queues a QA review; fail → auto-revision in the worker's
    resumed session.
-6. When the QA queue settles / run ends: audit → report → finance fire.
+6. Once QA fully completes (empty review queue, no in-flight tasks or
+   revisions) / run ends: finance fires; audit → report fire too when the
+   Compliance agent (OFF by default) has been toggled ON.
 7. Lifecycle events stream on `/events` (SSE); per-agent output on
    `/agent/:id/stream`; a 5s `status_heartbeat` reconciles every tile.
 
@@ -161,8 +164,8 @@ compact rules. The audit prompt is deliberately NOT delegated (token cost).
 ## Division of Labor (deliberately enforced)
 
 - The **server** owns all timestamps, the `events.jsonl` journal, token/cost
-  tallies (`recordUsage()` + `MODEL_PRICING`), policy checks (`checkPolicy()`,
-  plus a model-free snapshot every 2 minutes), and all HTML rendering
+  tallies (`recordUsage()` + `MODEL_PRICING`), policy checks (`checkPolicy()`
+  on every full audit — no periodic background check), and all HTML rendering
   (AUDIT.html, REPORT.html, BUILD_REPORT.html, md→html conversion).
 - **Agents** own only prose and judgment, returned as JSON or markdown with
   YAML front matter; a model can escalate an audit verdict but never downgrade it.

@@ -247,7 +247,7 @@ button.send:disabled{opacity:.5;cursor:wait;}
   <span class="runchip" id="runinfo">run: …</span>
   <div class="tbtns">
     <button class="tbtn" id="newRunBtn" title="End current run, start a fresh run folder">new run</button>
-    <button class="tbtn" id="auditBtn" title="Run a FULL compliance check now — audit agent + policy.json verification over the whole run workspace (lightweight snapshots also run automatically every 2 min)">compliance check</button>
+    <button class="tbtn" id="auditBtn" title="Run a FULL compliance check now — audit agent + policy.json verification over the whole run workspace. The Compliance agent is OFF by default; toggle it ON on its tile, and it audits automatically once QA has completed">compliance check</button>
     <button class="tbtn" id="reportBtn" title="Convert run .md files to HTML and consolidate everything into BUILD_REPORT.html">build report</button>
     <button class="tbtn" id="folderBtn" title="Open this run's folder in your file manager">&#128193; run folder</button>
   </div>
@@ -480,15 +480,6 @@ function idleText(name){
   return 'idle';
 }
 
-// direct tile control for server-side activity that isn't an agent turn
-// (the 2-min deterministic policy snapshots)
-function setTileDirect(name, text, on){
-  const key = tileKey(name); if(!key) return;
-  const t = document.getElementById('tile-'+key); if(!t) return;
-  t.classList.toggle('on', on);
-  document.getElementById('tstat-'+key).textContent = text;
-}
-
 // run-time cost total (server-computed estimate) → idle finance tile
 let runCost = 0;
 const agentEnabled = {};   // agent -> false when toggled off (default: enabled)
@@ -610,16 +601,6 @@ function handleGlobal(ev){
     case 'qa_revision_failed': act('⚖ revision failed on '+esc(ev.agent)+': '+esc(ev.error||''),'a-err'); break;
     case 'qa_failed': act('⚖ qa review failed: '+esc(ev.error||''),'a-err'); break;
     case 'audit_started': statusOverride.audit = ev.trigger==='manual' ? 'full check' : 'auditing'; act('◉ FULL compliance check started ('+esc(ev.trigger||'')+') — reviewing full workspace + policy.json','a-plan'); break;
-    case 'policy_snapshot_started':
-      setTileDirect('audit','snapshot check',true);
-      act('◉ compliance snapshot started — '+(ev.window_s||30)+'s policy watch window','a-dim');
-      break;
-    case 'policy_snapshot':
-      if(!document.getElementById('lamp-audit')?.classList.contains('on'))
-        setTileDirect('audit', ev.violations ? ev.violations+' violation(s)' : 'idle', false);
-      act('◉ compliance snapshot: '+ev.checked+' check(s), '+ev.violations+' violation(s)'
-          +(ev.critical?' ('+ev.critical+' critical)':''), ev.violations ? 'a-err' : 'a-ok');
-      break;
     case 'audit_complete':
       act('◉ COMPLIANCE '+esc((ev.overall||'').toUpperCase())+' — '+ev.findings+' findings ('
           +ev.critical+' critical, '+ev.warn+' warn) → AUDIT.json + AUDIT.html',

@@ -189,7 +189,10 @@ const AGENTS = new Set([LOGGER, QA, AUDIT, REPORT, FINANCE, RESEARCHER, "manager
 // allowed. The manager itself can never be disabled. checkPolicy()
 // replays agent_toggled/task_dispatched journal entries so a violation
 // is caught deterministically (rules.managerChecksAgentToggle).
-const disabledAgents = new Set();
+// The Compliance agent (audit) starts OFF: audits run only after it is
+// toggled ON from its tile, and then only when QA has fully completed
+// (qa settled / run end / manual trigger).
+const disabledAgents = new Set([AUDIT]);
 const isEnabled = (name) => !disabledAgents.has(name);
 
 // ----- per-agent AI model toggles (Opus / Sonnet) --------------------
@@ -386,6 +389,26 @@ async function mockLoggerSummary(stage, data, ts) {
 const reviewQueue = [];
 let reviewing = false;
 
+// ----- "QA completed" gate -------------------------------------------
+// An empty review queue is NOT the same as QA being done: a sibling plan
+// task may still be mid-turn, or a needs_work auto-revision may be running
+// on the worker's resumed session — both will queue a review only when
+// they finish. reviewsExpected counts that in-flight work, and the
+// qa-settled oversight (finance + audit) fires only when the queue is
+// empty AND nothing that will produce a review is still running.
+let reviewsExpected = 0;
+const expectReview = () => { reviewsExpected++; };
+function reviewExpectationDone() {
+  reviewsExpected = Math.max(0, reviewsExpected - 1);
+  maybeSettleQa();
+}
+function maybeSettleQa() {
+  if (reviewing || reviewQueue.length || reviewsExpected > 0) return;
+  pushGlobal({ type: "qa_idle" });
+  runFinance("qa settled"); // refresh the token ledger once QA is done
+  runAudit("qa settled");   // audit the whole workspace once QA is done
+}
+
 function queueReview(agent, name, taskPrompt, resultText, attempt = 1) {
   reviewQueue.push({ agent, name, taskPrompt, resultText, attempt });
   markActivity();
@@ -418,22 +441,22 @@ async function drainReviews() {
         const feedback = v.feedback || (v.issues || []).join("; ") || "improve the output";
         journal("qa_revision_dispatched", { agent: job.agent, name: job.name });
         pushGlobal({ type: "qa_revision", agent: job.agent, name: job.name });
-        // revision turn on the worker's RESUMED session, then re-review
+        // revision turn on the worker's RESUMED session, then re-review;
+        // counted as expected so QA isn't "settled" while it runs
+        expectReview();
         runTurn(job.agent,
           `QA review of your "${job.name}" output found issues:\n` +
           (v.issues || []).map(i => `- ${i}`).join("\n") +
           `\nPlease address them now: ${feedback}`)
-          .then(r => queueReview(job.agent, job.name, job.taskPrompt, String(r), job.attempt + 1))
-          .catch(e => pushGlobal({ type: "qa_revision_failed", agent: job.agent, error: String(e).slice(0, 200) }));
+          .then(r => { queueReview(job.agent, job.name, job.taskPrompt, String(r), job.attempt + 1); reviewExpectationDone(); })
+          .catch(e => { pushGlobal({ type: "qa_revision_failed", agent: job.agent, error: String(e).slice(0, 200) }); reviewExpectationDone(); });
       }
     } catch (e) {
       pushGlobal({ type: "qa_failed", agent: job.agent, name: job.name, error: String(e).slice(0, 200) });
     }
   }
   reviewing = false;
-  pushGlobal({ type: "qa_idle" });
-  runFinance("qa settled"); // refresh the token ledger once QA is done
-  runAudit("qa settled"); // audit the whole workspace once QA is done
+  maybeSettleQa(); // only fires finance/audit when no reviews are pending OR in flight
 }
 
 // CUSTOM-AGENT DELEGATION: review rules live in .claude/agents/qa.md; the
@@ -737,53 +760,11 @@ async function runAudit(trigger) {
   if (auditPending) { auditPending = false; runAudit("pending re-run"); }
 }
 
-// ----- periodic compliance snapshots ---------------------------------
-// Every 2 minutes the Compliance side runs a lightweight SNAPSHOT check:
-// a 30-second watch window that samples the deterministic checkPolicy()
-// at t=0/10/20/30s and reports the merged violations. Model-free and
-// server-owned, so it is identical in live and mock mode and can never
-// be talked out of a finding. The FULL check (audit agent + policy)
-// still runs on its usual triggers and via the dashboard's
+// NOTE: the former 2-minute periodic policy snapshot (runPolicySnapshot)
+// was removed by design: the Compliance agent starts OFF and, once
+// toggled ON, runs the FULL check (audit agent + checkPolicy) only when
+// QA has fully completed, at run end, or via the dashboard's
 // "compliance check" button (POST /audit → runAudit("manual")).
-const SNAPSHOT_INTERVAL_MS = 2 * 60 * 1000; // one snapshot every 2 minutes
-const SNAPSHOT_WINDOW_MS = 30 * 1000;       // each snapshot watches for 30 seconds
-const SNAPSHOT_SAMPLE_MS = 10 * 1000;       // sampling checkPolicy() every 10s
-let snapshotRunning = false;
-
-async function runPolicySnapshot() {
-  // skip while a full audit runs (it already includes these checks)
-  if (snapshotRunning || auditing || !run) return;
-  // TOGGLE CHECK: compliance toggled OFF = no snapshot checks either
-  if (!isEnabled(AUDIT)) return;
-  snapshotRunning = true;
-  const snap = { id: run.id, dir: run.dir }; // survive run rotation mid-window
-  journal("policy_snapshot_started", { window_s: SNAPSHOT_WINDOW_MS / 1000 });
-  pushGlobal({ type: "policy_snapshot_started", window_s: SNAPSHOT_WINDOW_MS / 1000 });
-
-  const merged = new Map(); // dedupe identical violations across samples
-  let checked = 0;
-  for (let elapsed = 0; ; elapsed += SNAPSHOT_SAMPLE_MS) {
-    try {
-      const pol = checkPolicy(snap);
-      checked = pol.summary.checked;
-      for (const f of pol.findings)
-        if (f.severity !== "info") merged.set(`${f.severity}|${f.finding}`, f);
-    } catch (e) {
-      merged.set(`warn|snapshot error`, { severity: "warn", area: "compliance",
-        finding: `policy snapshot sample failed: ${String(e).slice(0, 120)}`, evidence: "checkPolicy" });
-    }
-    if (elapsed >= SNAPSHOT_WINDOW_MS) break;
-    await new Promise(r => setTimeout(r, SNAPSHOT_SAMPLE_MS));
-  }
-
-  const findings = [...merged.values()];
-  journal("policy_snapshot", { checked, violations: findings.length,
-    findings: findings.slice(0, 5).map(f => f.finding) });
-  pushGlobal({ type: "policy_snapshot", checked, violations: findings.length,
-    critical: findings.filter(f => f.severity === "critical").length });
-  if (findings.length) markActivity(); // a violation makes the next full audit run
-  snapshotRunning = false;
-}
 
 // DELIBERATELY NOT DELEGATED to a custom agent (unlike manager/logger/qa/
 // report/finance): audit turns already carry 300-450k input tokens, and a
@@ -1624,15 +1605,20 @@ app.post("/agent/:id/message", (req, res) => {
   if (busy[agent]) return res.status(409).json({ error: "agent is mid-turn" });
   const resumed = !!sessions[agent];
   journal("human_turn", { agent, text: text.slice(0, 200) });
+  // QA also reviews human-directed turns of workers AND standing
+  // experts (not manager/oversight agents) — count those as expected
+  // so a mid-turn empty review queue doesn't read as "QA completed"
+  const reviewed = agent.startsWith("worker-") || !!STANDING_EXPERTS[agent];
+  if (reviewed) expectReview();
   runTurn(agent, text)
     .then(r => {
       journal("human_turn_done", { agent, result: String(r).slice(0, 200) });
-      // QA also reviews human-directed turns of workers AND standing
-      // experts (not manager/oversight agents)
-      if (agent.startsWith("worker-") || STANDING_EXPERTS[agent])
+      if (reviewed) {
         queueReview(agent, "human-directed", text, String(r));
+        reviewExpectationDone();
+      }
     })
-    .catch(() => {});
+    .catch(() => { if (reviewed) reviewExpectationDone(); });
   res.json({ ok: true, resumed });
 });
 
@@ -1944,9 +1930,6 @@ function clearStateFile() {
     const tok = AUTH_TOKEN ? `/?token=${AUTH_TOKEN}` : "";
     console.log(`[ready] dashboard on http://${HOST}:${port}${tok}`);
     if (!LOOPBACK) console.log(`[security] non-loopback bind — token auth ENFORCED (use the URL above)`);
-    // compliance snapshots: every 2 min, a 30s deterministic policy watch
-    // (unref'd so the timer never blocks a graceful exit)
-    setInterval(runPolicySnapshot, SNAPSHOT_INTERVAL_MS).unref();
     // status heartbeat: tiles reconcile against server truth every few seconds
     setInterval(pushStatusHeartbeat, HEARTBEAT_MS).unref();
   });
@@ -1996,6 +1979,7 @@ function extractPlan(text) {
 function runDispatchedTask(agent, t, results) {
   journal("task_dispatched", { agent, name: t.name });
   pushGlobal({ type: "task_dispatched", agent, name: t.name });
+  expectReview(); // this task will queue a QA review when it completes
   // t.prompt is model output steered by the untrusted goal — frame it
   const standing = STANDING_EXPERTS[agent];
   const taskPrompt =
@@ -2017,12 +2001,14 @@ function runDispatchedTask(agent, t, results) {
       pushGlobal({ type: "task_done", agent, name: t.name, result: String(r).slice(0, 200) });
       results.push({ name: t.name, result: String(r).slice(0, 200) });
       queueReview(agent, t.name, t.prompt, String(r)); // QA reviews every task output
+      reviewExpectationDone(); // review is queued now, no longer just expected
       return true;
     })
     .catch(e => {
       journal("task_failed", { agent, name: t.name, error: String(e).slice(0, 200) });
       pushGlobal({ type: "task_failed", agent, name: t.name, error: String(e).slice(0, 200) });
       results.push({ name: t.name, error: String(e).slice(0, 200) });
+      reviewExpectationDone(); // no review will come from a failed task
       return false;
     });
 }

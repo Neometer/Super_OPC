@@ -31,7 +31,7 @@ runs/<runId>/
 ## Journal stages (events.jsonl)
 
 Server-journaled, one JSON object per line, each with a server timestamp:
-`run_started`, `html_started`, `plan_started`, `plan_ready`, `task_dispatched`, `task_waiting`, `task_done`, `task_failed`, `task_skipped`, `plan_complete`, `human_turn`, `qa_review`, `qa_revision_dispatched`, `turn_usage`, `agent_toggled`, `model_set`, `oversight_skipped`, `policy_snapshot`, `stop_requested`/`stop_dispatched`/`stop_done`, `html_ended`, `run_ended`.
+`run_started`, `html_started`, `plan_started`, `plan_ready`, `task_dispatched`, `task_waiting`, `task_done`, `task_failed`, `task_skipped`, `plan_complete`, `human_turn`, `qa_review`, `qa_revision_dispatched`, `turn_usage`, `agent_toggled`, `model_set`, `oversight_skipped`, `stop_requested`/`stop_dispatched`/`stop_done`, `html_ended`, `run_ended`.
 
 ## Boundary rules (hard + soft)
 

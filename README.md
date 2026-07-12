@@ -50,15 +50,13 @@ The planning prompt tells the Manager exactly who is on the permanent team (each
 
 ## The Complicance agent — who audits the other agents
 
-An always-on `audit` agent independently reviews the **entire run workspace, including the qa and logger outputs**. It treats `events.jsonl` as ground truth and cross-checks everything else against it:
+The `audit` agent independently reviews the **entire run workspace, including the qa and logger outputs**. It is **toggled OFF by default** — switch it ON from its status tile to get audits. It treats `events.jsonl` as ground truth and cross-checks everything else against it:
 
 1. **Coverage** — every `task_done` must have a matching `qa_review`; the *final* verdict per task must be pass; no unresolved `task_failed`.
 2. **Integrity** — RUN_SUMMARY.md must contain a section per major journal stage; worker claims must be backed by real files under `agents/<worker>/`.
 3. **Findings** go into two per-run artifacts in the run folder: `AUDIT.json` (structured: overall verdict, coverage stats, integrity check, severity-tagged findings with evidence) and `AUDIT.html` (a self-contained styled report — open it in any browser or hand it to a judge). The agent owns the judgment; the server renders the HTML deterministically from the JSON, so the report markup is always valid.
 
-Triggers: automatically whenever the QA queue settles, on run end, or manually via the "run audit" button / `POST /audit`. One audit at a time; triggers during an audit queue a re-run. The audit snapshots the run directory at start, so a run rotation mid-audit can't corrupt it.
-
-Worth knowing: if an audit fires while a QA revision is still in flight, it will correctly report CRITICAL ("needs_work with no passing revision") and then clear to HEALTHY on the next audit after the revision passes — the interim report is the system catching a real in-flight issue, not a bug.
+Triggers (only while the agent is toggled ON): automatically once QA has fully completed — an empty review queue with no tasks or revisions still in flight — on run end, or manually via the "compliance check" button / `POST /audit`. There is no periodic background check. One audit at a time; triggers during an audit queue a re-run. The audit snapshots the run directory at start, so a run rotation mid-audit can't corrupt it.
 
 ## The Quality agent + auto-revision loop
 
