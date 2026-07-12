@@ -7,12 +7,13 @@ Mission Control Browser dashboard driving live **Claude Code** agent sessions.
 ## Quick start
 
 ```bash
+# first time setup
 npm install
 
 # try it immediately, no Claude CLI needed:
 npm run mock          # then open http://localhost:3000
 
-# go live (requires Claude Code installed + authenticated):
+# go live (requires Claude Code installed + authenticated, run from claude code):
 npm start
 
 # stop gracefully from another terminal (same as Ctrl-C: writes run_ended):
