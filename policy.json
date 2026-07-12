@@ -1,0 +1,86 @@
+{
+  "$comment": "COMPLIANCE BASELINE — the approved settings and rules for this project. The Compliance agent (audit) checks the live runtime against this file on every audit; any mismatch is reported as a policy violation. Update this file deliberately when settings legitimately change. A snapshot is copied into every run folder so the Compliance agent can read it from inside the run workspace.",
+  "version": 5,
+  "updated": "2026-07-11",
+  "$comment_task_tool": "v5: always-on agents (manager, qa, audit, logger, report, finance, researcher) get the Task tool so each headless session can trigger its matching custom agent in .claude/agents/. Dynamic workers and defaults deliberately do NOT get Task.",
+
+  "agents": {
+    "$comment": "Expected EFFECTIVE settings per agent (after defaults ⊕ wildcard ⊕ exact-name merge). Only the keys listed are checked. 'defaults' = the baseline every agent inherits; 'worker-*' = dynamically spawned workers.",
+    "defaults": {
+      "model": "claude-sonnet-5",
+      "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep"],
+      "permissionMode": "default",
+      "maxPromptChars": 4000,
+      "workspaceAccess": "run"
+    },
+    "manager": {
+      "$comment": "planning quality matters most — pinned to the strongest model",
+      "model": "claude-opus-4-8",
+      "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Task"],
+      "permissionMode": "default"
+    },
+    "qa": {
+      "model": "claude-sonnet-5",
+      "allowedTools": ["Read", "Glob", "Grep", "Write", "Edit", "Task"],
+      "permissionMode": "default"
+    },
+    "audit": {
+      "$comment": "the Compliance agent itself — read + report writing only",
+      "model": "claude-sonnet-5",
+      "allowedTools": ["Read", "Glob", "Grep", "Write", "Task"],
+      "permissionMode": "default"
+    },
+    "logger": {
+      "model": "claude-sonnet-5",
+      "allowedTools": ["Read", "Write", "Edit", "Task"],
+      "permissionMode": "default"
+    },
+    "report": {
+      "model": "claude-sonnet-5",
+      "allowedTools": ["Read", "Glob", "Grep", "Write", "Task"],
+      "permissionMode": "default"
+    },
+    "finance": {
+      "$comment": "the token accountant — reads the server tally, writes FINANCE.md only",
+      "model": "claude-sonnet-5",
+      "allowedTools": ["Read", "Write", "Edit", "Task"],
+      "permissionMode": "default"
+    },
+    "researcher": {
+      "model": "claude-sonnet-5",
+      "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch", "Task"],
+      "permissionMode": "default"
+    },
+    "worker-*": {
+      "model": "claude-sonnet-5",
+      "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep"],
+      "permissionMode": "acceptEdits",
+      "workspaceAccess": "run"
+    }
+  },
+
+  "orchestration": {
+    "maxTasks": 4,
+    "maxQaRetries": 1
+  },
+
+  "server": {
+    "loopbackOnly": true,
+    "requireAuthOnNonLoopback": true
+  },
+
+  "rules": {
+    "$comment": "Project invariants the Compliance agent enforces beyond raw settings.",
+    "forbidBashByDefault": true,
+    "bashAllowedFor": [],
+    "forbidEnvToolOverride": true,
+    "oversightAgentsNeverTasked": ["qa", "audit", "logger", "report", "finance"],
+    "$comment_managerChecksAgentToggle": "Every agent status tile except the manager's has an on/off toggle. The manager must check the toggle state before dispatching a task: ON = the agent may be assigned tasks, OFF = the manager must not trigger it. Oversight agents (qa/audit/logger/report/finance) also check their own toggle before every execution and skip (journaled as oversight_skipped) when OFF. Enforced in the planning prompt, at dispatch time, and verified here by replaying agent_toggled vs task_dispatched journal entries. The manager itself can never be toggled off.",
+    "managerChecksAgentToggle": true,
+    "$comment_modelToggleAllowedModels": "Every agent status tile except the manager's has an Opus/Sonnet model toggle; the server reads the selected model right before opening each agent's terminal session. Only the models listed here may be selected, and the manager must always run its policy model (Opus) — checkPolicy verifies the live overrides against this list.",
+    "modelToggleAllowedModels": ["claude-opus-4-8", "claude-sonnet-5"],
+    "serverOwnsTimestamps": true,
+    "promptsAreCappedAndFramed": true,
+    "maxJsonBodyKb": 64
+  }
+}

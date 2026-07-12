@@ -1,0 +1,20 @@
+{
+  "name": "opc-headless-starter",
+  "version": "0.1.0",
+  "description": "Browser dashboard driving headless Claude Code agent sessions (claude -p + --resume + stream-json)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "stop": "node scripts/stop.js",
+    "mock": "node server.js --mock",
+    "check:html": "node scripts/check-html.js public/index.html",
+    "check:server": "node --check server.js",
+    "test": "npm run check:html && npm run check:server"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.0"
+  }
+}

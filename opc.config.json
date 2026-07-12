@@ -1,0 +1,57 @@
+{
+  "$comment": "OPC project defaults. Env vars override server settings (HOST, PORT, AUTH_TOKEN); agent entries override 'defaults' per agent. 'worker-*' matches all dynamically spawned workers.",
+
+  "server": {
+    "host": "127.0.0.1",
+    "port": 3000,
+    "authToken": null
+  },
+
+  "defaults": {
+    "model": "claude-sonnet-5",
+    "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep"],
+    "permissionMode": "default",
+    "maxPromptChars": 4000,
+    "$comment_workspaceAccess": "'run' (default): every agent can read/write the whole project-run workspace via --add-dir; 'own': agent is confined to its own folder",
+    "workspaceAccess": "run"
+  },
+
+  "agents": {
+    "manager": {
+      "$comment": "planning quality matters most — use the strongest model; Task lets the session trigger its .claude/agents custom agent",
+      "model": "claude-opus-4-8",
+      "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Task"]
+    },
+    "qa": {
+      "$comment": "reviews only need Read + report editing",
+      "allowedTools": ["Read", "Glob", "Grep", "Write", "Edit", "Task"]
+    },
+    "audit": {
+      "allowedTools": ["Read", "Glob", "Grep", "Write", "Task"]
+    },
+    "logger": {
+      "allowedTools": ["Read", "Write", "Edit", "Task"]
+    },
+    "researcher": {
+      "$comment": "standing expert task-taker — gets web tools on top of the file tools for real research",
+      "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch", "Task"]
+    },
+    "report": {
+      "$comment": "consolidates logger + qa + audit outputs; server renders REPORT.html from its JSON",
+      "allowedTools": ["Read", "Glob", "Grep", "Write", "Task"]
+    },
+    "finance": {
+      "$comment": "token accountant — writes FINANCE.md from the server's deterministic tally",
+      "allowedTools": ["Read", "Write", "Edit", "Task"]
+    },
+    "worker-*": {
+      "$comment": "dynamic workers inherit defaults; set permissionMode to acceptEdits to skip edit confirmations inside their workspace",
+      "permissionMode": "acceptEdits"
+    }
+  },
+
+  "orchestration": {
+    "maxTasks": 4,
+    "maxQaRetries": 1
+  }
+}
