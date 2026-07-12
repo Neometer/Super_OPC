@@ -47,6 +47,11 @@ Nearly all logic lives in two files: `server.js` (Express server, all orchestrat
    REPORT.json/html, FINANCE.md, BUILD_REPORT.html,
    sessions.json, agents/<name>/ workspaces
 ```
+Key server details:
+
+- **Session capture:** the first stream-json event is `{"type":"system","subtype":"init","session_id":...}` — the server stores it and passes `--resume` on every later turn.
+- **Permissions:** headless sessions can't answer "allow?" prompts, so tools are pre-approved via `--allowedTools` (see `ALLOWED_TOOLS` in server.js). Keep the scope tight; widen deliberately.
+- **One turn at a time per agent:** a busy flag returns 409 if you send while the agent is mid-turn.
 
 ---
 
@@ -149,6 +154,7 @@ compact rules. The audit prompt is deliberately NOT delegated (token cost).
 - Plan & dispatch, red "Stop tasks" (graceful manager-ordered stop with
   STOP_REPORT.md per agent), compliance-check, report, and finance buttons.
 - Direct human sends to any agent stay allowed even when toggled OFF.
+- **HTML guardrail** — `npm test` runs `node --check` on the dashboard's inline script (with error lines remapped to `public/index.html`) plus `node --check server.js`.
 
 ---
 
@@ -183,6 +189,10 @@ npm run mock     deterministic mock mode — full pipeline, no CLI needed
 npm stop         graceful shutdown (journals run_ended, Windows-safe)
 npm test         syntax guardrails: check:html + check:server
 ```
+`npm stop` finds the live instance via `.opc-server.json` (written on boot, so it works even when the port guardrail moved the server off the configured port) and POSTs the auth-protected `/shutdown` endpoint — necessary on Windows, where a cross-process signal would terminate the server without running its Ctrl-C handler. If the endpoint is unreachable it falls back to killing the pid.
+
+If the `claude` CLI isn't on PATH the server auto-falls back to mock mode,
+so the dashboard is always demoable.
 
 ---
 

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPC Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Space Grotesk',system-ui,-apple-system,sans-serif;color:#e2e8f0;
+  background-color:#fdf6e3;
+  background-image:
+    radial-gradient(1100px 500px at 15% -5%, rgba(38,139,210,0.10), transparent 60%),
+    radial-gradient(900px 480px at 85% 0%, rgba(211,54,130,0.08), transparent 60%),
+    radial-gradient(800px 600px at 50% 110%, rgba(133,153,0,0.08), transparent 60%),
+    linear-gradient(rgba(101,123,131,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(101,123,131,0.07) 1px, transparent 1px);
+  background-size:auto,auto,auto,32px 32px,32px 32px;
+  background-attachment:fixed;
+  display:flex;flex-direction:column;gap:12px;
+  padding:14px 18px 16px;
+}
+a{color:#22d3ee;text-decoration:none;}
+a:hover{color:#67e8f9;text-decoration:underline;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(148,163,184,0.25);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(148,163,184,0.45);}
+@keyframes pulseDot{0%,100%{opacity:1;box-shadow:0 0 6px currentColor;}50%{opacity:.45;box-shadow:0 0 2px currentColor;}}
+@keyframes pop{from{transform:scale(.97);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+/* ===== top bar ===== */
+.topbar{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;flex:0 0 auto;}
+.brand{display:flex;align-items:baseline;gap:12px;}
+h1{
+  font-size:24px;font-weight:700;letter-spacing:-0.02em;
+  background:linear-gradient(90deg,#268bd2,#6c71c4 55%,#d33682);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.mode{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;
+  color:#859900;text-transform:uppercase;letter-spacing:0.08em;
+}
+/* single-word title state: Live / Mock / Idle / Error */
+.mode.live{color:#859900;}
+.mode.mock{color:#b58900;}
+.mode.idle{color:#657b83;}
+.mode.idle .modedot{animation:none;}
+.mode.error{color:#dc322f;}
+.modedot{width:8px;height:8px;border-radius:50%;background:currentColor;animation:pulseDot 1.6s ease-in-out infinite;}
+.spacer{flex:1;}
+.runchip{
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#657b83;
+  background:rgba(238,232,213,0.8);border:1px solid rgba(101,123,131,0.3);
+  border-radius:8px;padding:6px 12px;
+}
+.tbtns{display:flex;gap:8px;flex-wrap:wrap;}
+.tbtn{
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#586e75;
+  background:rgba(238,232,213,0.8);border:1px solid rgba(101,123,131,0.3);
+  border-radius:8px;padding:7px 14px;cursor:pointer;
+}
+.tbtn:hover{border-color:#268bd2;color:#268bd2;}
+
+/* ===== orchestrate strip =====
+   row 1: title spanning both columns; row 2: input row | activity log —
+   so the log top-aligns with the textarea + buttons, not the title */
+.orch{
+  display:grid;grid-template-columns:minmax(440px,46%) 1fr;gap:12px;flex:0 0 auto;
+  background:rgba(10,15,28,0.75);border:1px solid rgba(34,211,238,0.25);
+  border-radius:14px;padding:14px 16px;
+  box-shadow:0 0 24px rgba(34,211,238,0.06), inset 0 1px 0 rgba(255,255,255,0.04);
+  backdrop-filter:blur(6px);
+}
+.orch-left{display:flex;flex-direction:column;gap:10px;}
+.orch-title{grid-column:1 / -1;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+.orch-title b{font-size:15px;font-weight:700;color:#f1f5f9;}
+.orch-title span{font-size:12px;color:#64748b;}
+.orchrow{display:flex;gap:8px;}
+.orch textarea{
+  flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;
+  color:#e2e8f0;background:rgba(2,6,17,0.8);border:1px solid rgba(148,163,184,0.25);
+  border-radius:9px;padding:11px 13px;outline:none;
+  resize:vertical;min-height:96px;line-height:1.5;
+}
+.orch textarea::placeholder{color:#475569;}
+.orch textarea:focus{border-color:#22d3ee;box-shadow:0 0 0 3px rgba(34,211,238,0.15);}
+button.go{
+  font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:#041018;
+  background:linear-gradient(90deg,#22d3ee,#67e8f9);border:none;border-radius:9px;
+  padding:0 14px;cursor:pointer;box-shadow:0 0 16px rgba(34,211,238,0.35);line-height:1.3;
+}
+button.go:hover{box-shadow:0 0 26px rgba(34,211,238,0.55);}
+button.go:disabled{opacity:.5;cursor:wait;box-shadow:none;}
+button.stoptasks{
+  font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:#fff;
+  background:linear-gradient(90deg,#dc2626,#f87171);border:none;border-radius:9px;
+  padding:0 20px;cursor:pointer;box-shadow:0 0 16px rgba(239,68,68,0.35);white-space:nowrap;
+}
+button.stoptasks:hover{box-shadow:0 0 26px rgba(239,68,68,0.55);}
+button.stoptasks:disabled{opacity:.5;cursor:wait;box-shadow:none;}
+.counts{display:flex;gap:14px;flex-wrap:wrap;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:#64748b;}
+.counts i{font-style:normal;}
+.c-ok{color:#4ade80;} .c-warn{color:#fbbf24;} .c-cyan{color:#22d3ee;}
+.activity{
+  background:rgba(2,6,17,0.85);border:1px solid rgba(148,163,184,0.14);border-radius:10px;
+  padding:10px 14px;overflow-y:auto;max-height:118px;min-height:60px;
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;line-height:1.75;
+}
+.activity:empty{display:flex;align-items:center;justify-content:center;}
+.activity:empty::before{content:'— plan lifecycle streams here —';color:#475569;font-size:11px;letter-spacing:.06em;}
+.activity .ln{margin-bottom:3px;white-space:pre-wrap;}
+.a-plan{color:#fbbf24;} .a-ok{color:#4ade80;} .a-err{color:#f87171;} .a-dim{color:#64748b;} .a-info{color:#93c5fd;}
+
+/* ===== team status tiles ===== */
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;flex:0 0 auto;}
+.tile{
+  --ac:#22d3ee;
+  display:flex;flex-direction:column;gap:6px;min-width:0;
+  background:rgba(10,15,28,0.8);border:1px solid rgba(148,163,184,0.18);
+  border-radius:12px;padding:10px 12px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+  animation:pop .25s;
+}
+.tile .thead{display:flex;align-items:center;gap:7px;min-width:0;}
+.tile .tdot{width:8px;height:8px;border-radius:50%;flex:none;background:#334155;transition:background .2s;}
+.tile b{font-size:12px;font-weight:600;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tile .tstat{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tile.on{
+  border-color:color-mix(in srgb, var(--ac) 55%, transparent);
+  box-shadow:0 0 14px color-mix(in srgb, var(--ac) 12%, transparent), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.tile.on .tdot{background:var(--ac);color:var(--ac);animation:pulseDot 1.6s ease-in-out infinite;}
+.tile.on .tstat{color:color-mix(in srgb, var(--ac) 85%, #fff);}
+.tile.unused{border-style:dashed;opacity:.6;}
+.tile.unused .tstat{font-style:italic;}
+.tile .tgl,.tile .mtgl{padding:2px 8px;font-size:9px;}
+.tile .mtgl{margin-left:auto;color:#93c5fd;border-color:rgba(147,197,253,0.4);}
+.tile .mtgl:hover{border-color:#93c5fd;color:#93c5fd;}
+.tile .mtgl.pinned{cursor:default;color:#fbbf24;border-color:rgba(251,191,36,0.4);}
+
+/* ===== agent grid ===== */
+.cards{flex:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:min-content;gap:12px;}
+.card{
+  --ac:#22d3ee;
+  display:flex;flex-direction:column;min-height:0;
+  background:rgba(10,15,28,0.8);border:1px solid rgba(148,163,184,0.18);
+  border-radius:14px;overflow:hidden;
+  box-shadow:0 0 20px rgba(0,0,0,0), inset 0 1px 0 rgba(255,255,255,0.04);
+  animation:pop .25s;
+}
+.card.manager{--ac:#fbbf24;grid-column:span 2;}
+.card.logger{--ac:#d946ef;}
+.card.qa{--ac:#4ade80;}
+.card.audit{--ac:#a78bfa;}
+.card.report{--ac:#fb923c;}
+.card.finance{--ac:#eab308;}
+.card.researcher{--ac:#2dd4bf;}
+.card.active{
+  border-color:color-mix(in srgb, var(--ac) 55%, transparent);
+  box-shadow:0 0 20px color-mix(in srgb, var(--ac) 13%, transparent), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.card.collapsed .feed,.card.collapsed .inbar{display:none;}
+.card.collapsed .head{border-bottom:none;}
+.head{display:flex;align-items:center;gap:8px;padding:10px 12px;flex:0 0 auto;border-bottom:1px solid rgba(148,163,184,0.12);}
+.lamp{width:9px;height:9px;border-radius:50%;flex:none;background:#334155;transition:background .2s;}
+.lamp.on{background:var(--ac);color:var(--ac);animation:pulseDot 1.6s ease-in-out infinite;}
+.who{display:flex;flex-direction:column;line-height:1.2;min-width:0;flex:1 1 auto;overflow:hidden;}
+.who b{font-size:15px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.who small{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.task{
+  display:none;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;
+  flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:color-mix(in srgb, var(--ac) 80%, #fff);
+  background:color-mix(in srgb, var(--ac) 12%, transparent);
+  border:1px dashed color-mix(in srgb, var(--ac) 50%, transparent);
+  border-radius:6px;padding:3px 8px;
+}
+.task.show{display:inline-block;}
+.headspace{flex:0 0 0;}
+.sid{
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;flex:0 0 auto;color:#64748b;
+  background:rgba(2,6,17,0.6);border:1px solid rgba(148,163,184,0.16);
+  border-radius:6px;padding:3px 8px;white-space:nowrap;
+}
+.sid.has{color:#86efac;}
+.hbtn{
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;flex:none;
+  background:transparent;border:1px solid rgba(148,163,184,0.2);border-radius:6px;
+  color:#94a3b8;padding:4px 8px;cursor:pointer;
+}
+.hbtn:hover{border-color:#22d3ee;color:#22d3ee;}
+.hbtn.reset:hover{border-color:#f87171;color:#f87171;}
+.hbtn.tgl{color:#4ade80;border-color:rgba(74,222,128,0.45);min-width:34px;}
+.hbtn.tgl.off{color:#64748b;border-color:rgba(148,163,184,0.25);}
+.hbtn.tgl:hover{border-color:#4ade80;color:#4ade80;}
+.hbtn.tgl.off:hover{border-color:#94a3b8;color:#94a3b8;}
+.card.off{opacity:.55;}
+.card.off .lamp{background:#334155;animation:none;}
+.tile.off{border-style:dashed;opacity:.55;}
+.tile.off .tstat{font-style:italic;}
+.feed{
+  height:280px;min-height:0;overflow-y:auto;padding:10px 14px;
+  background:rgba(2,6,17,0.55);color:#94a3b8;overflow-wrap:anywhere;
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;line-height:1.7;
+}
+.feed:empty{display:flex;align-items:center;justify-content:center;}
+.feed:empty::before{
+  content:'⏳ standing by — no session yet';color:#475569;
+  font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+}
+.ln{margin-bottom:4px;white-space:pre-wrap;word-break:break-word;}
+.t-hu{color:#93c5fd;} .t-tool{color:#fbbf24;} .t-ok{color:#4ade80;} .t-dim{color:#64748b;} .t-text{color:#e2e8f0;}
+.inbar{display:flex;gap:8px;padding:10px 14px;flex:0 0 auto;border-top:1px solid rgba(148,163,184,0.12);}
+.inbar input{
+  flex:1;min-width:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;
+  color:#e2e8f0;background:rgba(2,6,17,0.7);border:1px solid rgba(148,163,184,0.2);
+  border-radius:8px;padding:8px 11px;outline:none;
+}
+.inbar input::placeholder{color:#475569;}
+.inbar input:focus{border-color:var(--ac);}
+button.send{
+  font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;color:#041018;
+  background:var(--ac);border:none;border-radius:8px;padding:0 16px;cursor:pointer;
+}
+button.send:hover{filter:brightness(1.2);}
+button.send:disabled{opacity:.5;cursor:wait;}
+
+@media(max-width:1500px){.cards{grid-template-columns:repeat(3,minmax(0,1fr));}.tiles{grid-template-columns:repeat(4,minmax(0,1fr));}}
+@media(max-width:1100px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));}.tiles{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:900px){.orch{grid-template-columns:1fr;}}
+@media(max-width:720px){.cards{grid-template-columns:1fr;}.card.manager{grid-column:auto;}.tiles{grid-template-columns:repeat(2,minmax(0,1fr));}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>OPC Dashboard</h1>
+    <span class="mode" id="mode"><span class="modedot"></span><span id="modeText">connecting…</span></span>
+  </div>
+  <div class="spacer"></div>
+  <span class="runchip" id="runinfo">run: …</span>
+  <div class="tbtns">
+    <button class="tbtn" id="newRunBtn" title="End current run, start a fresh run folder">new run</button>
+    <button class="tbtn" id="auditBtn" title="Run a FULL compliance check now — audit agent + policy.json verification over the whole run workspace (lightweight snapshots also run automatically every 2 min)">compliance check</button>
+    <button class="tbtn" id="reportBtn" title="Convert run .md files to HTML and consolidate everything into BUILD_REPORT.html">build report</button>
+    <button class="tbtn" id="folderBtn" title="Open this run's folder in your file manager">&#128193; run folder</button>
+  </div>
+</header>
+
+<section class="orch">
+  <div class="orch-title"><b>Input Tasks</b><span>custom workers and LLM models supported</span></div>
+  <div class="orch-left">
+    <div class="orchrow">
+      <textarea id="goal" rows="4" placeholder="Describe the mission…" autocomplete="off"></textarea>
+      <button class="go" id="goBtn">Plan &amp;<br>dispatch</button>
+      <button class="stoptasks" id="stopBtn" title="Manager orders every agent to stop gracefully — each finishes its current step, then documents unfinished work in STOP_REPORT.md">Stop tasks</button>
+    </div>
+    <div class="counts">
+      <span><i class="c-ok">●</i> <span id="cPlanned">0</span> tasks planned</span>
+      <span><i class="c-warn">●</i> <span id="cDispatched">0</span> dispatched</span>
+      <span><i class="c-cyan">●</i> <span id="cActive">0</span> agents active</span>
+    </div>
+  </div>
+  <div class="activity" id="activity"></div>
+</section>
+
+<section class="tiles" id="tiles"></section>
+
+<main class="cards" id="cards"></main>
+
+<script>
+const mounted = new Set();
+
+// token auth: server prints the dashboard URL with ?token=... when enabled
+const TOKEN = new URLSearchParams(location.search).get('token');
+const withTok = url => TOKEN ? url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(TOKEN) : url;
+const api = (url, opts={}) => {
+  opts.headers = Object.assign({}, opts.headers, TOKEN ? {'x-auth-token': TOKEN} : {});
+  return fetch(url, opts);
+};
+
+async function boot(){
+  // the ONE SSE connection for the whole dashboard: run info, plan
+  // lifecycle, and every agent's feed (multiplexed as agent_event).
+  // Opened first so it can never be starved by other requests.
+  const es = new EventSource(withTok('/events'));
+  es.onmessage = e => handleGlobal(JSON.parse(e.data));
+  es.onerror = () => { sseError = true; updateTitleState(); };
+  es.onopen  = () => { sseError = false; updateTitleState(); };
+
+  const agents = await (await api('/agents')).json();
+  isMock = !!agents[0]?.mock;
+  updateTitleState();
+  buildTiles(agents.filter(a => a.core));
+  for (const a of agents.filter(a => !a.core)) assignSlot(a.name, a.role);
+  for (const a of agents) mountCard(a.name, a.sessionId, a.role, a.core, a.model);
+  for (const a of agents) if (a.busy) { setLamp(a.name, true); }
+  for (const a of agents) if (a.enabled === false) applyEnabled(a.name, false);
+  for (const a of agents) applyModel(a.name, a.model);
+
+  const goal = document.getElementById('goal');
+  const goBtn = document.getElementById('goBtn');
+  const go = async () => {
+    const g = goal.value.trim();
+    if(!g) return;
+    goBtn.disabled = true;
+    const r = await api('/orchestrate',{method:'POST',
+      headers:{'Content-Type':'application/json'}, body:JSON.stringify({goal:g})});
+    if(r.status===409) act('manager is mid-turn — wait for it to finish','a-err');
+    goBtn.disabled = false;
+  };
+  goBtn.addEventListener('click', go);
+  // Enter dispatches; Shift+Enter inserts a newline in the textarea
+  goal.addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); go(); } });
+
+  const stopBtn = document.getElementById('stopBtn');
+  stopBtn.addEventListener('click', async () => {
+    stopBtn.disabled = true;
+    await api('/tasks/stop', {method:'POST'});
+    stopBtn.disabled = false;
+  });
+
+  document.getElementById('newRunBtn').addEventListener('click', async () => {
+    await api('/run/new', {method:'POST'});
+    location.reload(); // fresh cards + fresh sessions for the new run folder
+  });
+
+  document.getElementById('auditBtn').addEventListener('click', () =>
+    api('/audit', {method:'POST'}));
+
+  document.getElementById('reportBtn').addEventListener('click', () =>
+    api('/report', {method:'POST'}));
+
+  document.getElementById('folderBtn').addEventListener('click', () =>
+    api('/run/open-folder', {method:'POST'}));
+}
+
+// live counters in the orchestrate strip
+const counts = { planned: 0, inflight: 0 };
+function syncCounts(){
+  document.getElementById('cPlanned').textContent = counts.planned;
+  document.getElementById('cDispatched').textContent = counts.inflight;
+  document.getElementById('cActive').textContent = document.querySelectorAll('.lamp.on').length;
+  updateTitleState();
+}
+
+// ===== dashboard title state — one word: Live / Mock / Idle / Error =====
+//   Live  = work is running with live agents
+//   Mock  = work is running without live agents (mock mode)
+//   Idle  = session not started (no task yet) or all work completed
+//   Error = anything else (server/SSE connection lost)
+let isMock = false, sseError = false;
+function updateTitleState(){
+  const working = document.querySelectorAll('.lamp.on').length > 0 || counts.inflight > 0;
+  const state = sseError ? 'Error' : working ? (isMock ? 'Mock' : 'Live') : 'Idle';
+  const modeEl = document.getElementById('mode');
+  modeEl.className = 'mode ' + state.toLowerCase();
+  modeEl.title = { Live: 'agents are working — headless claude -p sessions',
+                   Mock: 'agents are working — simulated events (mock mode)',
+                   Idle: 'no task running — give a goal or direct an agent',
+                   Error: 'connection to the server lost — is it still running?' }[state];
+  document.getElementById('modeText').textContent = state;
+  document.title = 'OPC Dashboard — ' + state;
+}
+
+// ===== team status tiles =====
+// one tile per always-on agent, and 4 fixed worker slots — unclaimed
+// slots read "Not in Use". Every tile except the manager's carries the
+// agent's on/off toggle (the manager can never be toggled off).
+const TILE_ACCENTS = {manager:'#fbbf24',researcher:'#2dd4bf',qa:'#4ade80',audit:'#a78bfa',report:'#fb923c',finance:'#eab308',logger:'#d946ef'};
+const BUSY_TEXT = {manager:'planning',researcher:'researching',qa:'checking',audit:'auditing',report:'doing report',finance:'tallying tokens',logger:'logging'};
+const MAX_SLOTS = 4;
+const workerSlots = [null,null,null,null];   // slot index -> worker name
+const coreTiles = new Set();
+const statusOverride = {};                    // agent -> concise status for its current turn
+
+function wireToggle(btn, name){
+  // desired = flip of current; the confirmed state comes back on the
+  // global agent_toggled event (server is the source of truth)
+  btn.addEventListener('click', () =>
+    api(`/agent/${name}/toggle`, {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({enabled: agentEnabled[name] === false})}));
+}
+
+function wireModelToggle(btn, name){
+  // desired = flip of current; the confirmed model comes back on the
+  // global model_set event (server is the source of truth)
+  btn.addEventListener('click', () =>
+    api(`/agent/${name}/model`, {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model: modelLabel(agentModel[name])==='opus' ? 'sonnet' : 'opus'})}));
+}
+
+function addTile(key, label, ac, unused, toggleName){
+  const d = document.createElement('div');
+  d.className = 'tile'+(unused?' unused':'');
+  d.id = 'tile-'+key;
+  d.style.setProperty('--ac', ac);
+  d.innerHTML = `<div class="thead"><span class="tdot"></span><b id="tname-${key}">${esc(label)}</b>`+
+    (key==='manager'?`<span class="hbtn mtgl pinned" title="The manager always uses the Opus model">opus</span>`:'')+
+    (toggleName?`<button class="hbtn mtgl" id="mdl-${toggleName}" title="AI model for this agent — click to switch between Opus and Sonnet">sonnet</button>`+
+                `<button class="hbtn tgl" id="tgl-${toggleName}" title="ON — the manager may assign tasks to this agent. Click to switch off.">on</button>`:'')+
+    `</div>`+
+    `<span class="tstat" id="tstat-${key}">${unused?'Not in Use':'idle'}</span>`;
+  document.getElementById('tiles').appendChild(d);
+  if(toggleName){
+    wireModelToggle(d.querySelector('.mtgl'), toggleName);
+    wireToggle(d.querySelector('.tgl'), toggleName);
+  }
+}
+
+function buildTiles(coreAgents){
+  const wrap = document.getElementById('tiles');
+  wrap.innerHTML = '';
+  for(const a of coreAgents){ coreTiles.add(a.name); addTile(a.name, a.role, TILE_ACCENTS[a.name]||'#22d3ee', false, a.name==='manager'?null:a.name); }
+  for(let i=0;i<MAX_SLOTS;i++) addTile('slot'+i, 'Worker slot '+(i+1), '#38bdf8', true);
+}
+
+function tileKey(name){
+  if(coreTiles.has(name)) return name;
+  const i = workerSlots.indexOf(name);
+  return i>=0 ? 'slot'+i : null;
+}
+
+// a new dynamic worker claims the first free slot; when all 4 are taken,
+// it reuses the first slot whose worker is idle
+function assignSlot(name, role){
+  if(!name.startsWith('worker-') || workerSlots.includes(name)) return;
+  let i = workerSlots.indexOf(null);
+  if(i<0) i = workerSlots.findIndex((_,j)=>!document.getElementById('tile-slot'+j)?.classList.contains('on'));
+  if(i<0) return;
+  workerSlots[i] = name;
+  const t = document.getElementById('tile-slot'+i);
+  if(!t) return;
+  t.classList.remove('unused');
+  document.getElementById('tname-slot'+i).textContent = (role||'Worker')+' · '+name.replace(/^worker-/,'');
+  document.getElementById('tstat-slot'+i).textContent = 'idle';
+  // rebind the slot's toggles to the worker that now owns it
+  t.querySelector('.mtgl')?.remove();
+  t.querySelector('.tgl')?.remove();
+  const mbtn = document.createElement('button');
+  mbtn.className = 'hbtn mtgl';
+  mbtn.id = 'mdl-'+name;
+  mbtn.textContent = modelLabel(agentModel[name]);
+  mbtn.title = 'AI model for this agent — click to switch between Opus and Sonnet';
+  t.querySelector('.thead').appendChild(mbtn);
+  wireModelToggle(mbtn, name);
+  const btn = document.createElement('button');
+  btn.className = 'hbtn tgl';
+  btn.id = 'tgl-'+name;
+  btn.textContent = 'on';
+  t.querySelector('.thead').appendChild(btn);
+  wireToggle(btn, name);
+  applyEnabled(name, agentEnabled[name] !== false);
+  if(agentModel[name]) applyModel(name, agentModel[name]);
+}
+
+// concise per-agent status, driven by the same lamp state as the cards
+function setTile(name, on){
+  const key = tileKey(name); if(!key) return;
+  const t = document.getElementById('tile-'+key); if(!t) return;
+  t.classList.toggle('on', on);
+  document.getElementById('tstat-'+key).textContent =
+    on ? (statusOverride[name] || BUSY_TEXT[name] || 'busy') : idleText(name);
+  if(!on) delete statusOverride[name];
+}
+
+// what an idle tile reads: the finance tile shows the run's total cost so
+// far (updated live on every token_usage event); disabled agents read "off"
+function idleText(name){
+  if(agentEnabled[name] === false) return 'off';
+  if(name === 'finance') return '$'+runCost.toFixed(4)+' spent';
+  return 'idle';
+}
+
+// direct tile control for server-side activity that isn't an agent turn
+// (the 2-min deterministic policy snapshots)
+function setTileDirect(name, text, on){
+  const key = tileKey(name); if(!key) return;
+  const t = document.getElementById('tile-'+key); if(!t) return;
+  t.classList.toggle('on', on);
+  document.getElementById('tstat-'+key).textContent = text;
+}
+
+// run-time cost total (server-computed estimate) → idle finance tile
+let runCost = 0;
+const agentEnabled = {};   // agent -> false when toggled off (default: enabled)
+const agentModel = {};     // agent -> full model id currently selected
+
+// model state → tile toggle label + card subtitle (server is source of truth)
+function modelLabel(m){ return String(m||'').includes('opus') ? 'opus' : 'sonnet'; }
+function applyModel(name, model){
+  if(!model || model === 'default') return;
+  agentModel[name] = model;
+  const btn = document.getElementById('mdl-'+name);
+  if(btn){
+    btn.textContent = modelLabel(model);
+    btn.title = 'AI model: '+model+' — click to switch to '+(modelLabel(model)==='opus'?'Sonnet':'Opus');
+  }
+  const sm = document.getElementById('model-'+name);
+  if(sm) sm.textContent = model;
+}
+function setCost(c){
+  runCost = Number(c)||0;
+  const ft = document.getElementById('tile-finance');
+  if(ft && !ft.classList.contains('on'))
+    document.getElementById('tstat-finance').textContent = idleText('finance');
+}
+
+// toggle state → card button + card dimming + tile "off" state
+function applyEnabled(name, enabled){
+  if(name === 'manager') return;
+  agentEnabled[name] = enabled;
+  const btn = document.getElementById('tgl-'+name);
+  if(btn){
+    btn.textContent = enabled ? 'on' : 'off';
+    btn.classList.toggle('off', !enabled);
+    btn.title = enabled
+      ? 'ON — the manager may assign tasks to this agent. Click to switch off.'
+      : 'OFF — the manager will not assign tasks to this agent. Click to switch on.';
+  }
+  document.getElementById('card-'+name)?.classList.toggle('off', !enabled);
+  const key = tileKey(name);
+  const t = key && document.getElementById('tile-'+key);
+  if(t){
+    t.classList.toggle('off', !enabled);
+    if(!t.classList.contains('on'))
+      document.getElementById('tstat-'+key).textContent = idleText(name);
+  }
+}
+
+// worker task chip in the card header
+function setTask(name, task){
+  const el = document.getElementById('task-'+name);
+  if(!el) return;
+  el.textContent = task ? '⚡ '+task : '';
+  el.title = task || '';
+  el.classList.toggle('show', !!task);
+}
+
+function handleGlobal(ev){
+  switch(ev.type){
+    case 'hello': if(ev.run){ setRunInfo(ev.run); setCost(ev.run.cost); } isMock=!!ev.mock; sseError=false; updateTitleState(); break;
+    case 'agent_event': render(ev.agent, ev.ev); break;
+    case 'run_info': setRunInfo(ev); setCost(ev.cost); act('◈ new run started: '+esc(ev.id),'a-plan'); break;
+    case 'status_heartbeat': {
+      // reconcile every tile/lamp against the server's ground truth — a tile
+      // can never stay wrong longer than one heartbeat (~5s)
+      for(const [n, s] of Object.entries(ev.agents||{})){
+        const lampOn = !!document.getElementById('lamp-'+n)?.classList.contains('on');
+        if(lampOn !== !!s.busy) setLamp(n, !!s.busy);
+        if((agentEnabled[n] !== false) !== (s.enabled !== false)) applyEnabled(n, s.enabled !== false);
+        if(s.model && agentModel[n] !== s.model) applyModel(n, s.model);
+      }
+      setCost(ev.cost);
+      updateTitleState();
+      break;
+    }
+    case 'agent_toggled':
+      applyEnabled(ev.name, ev.enabled);
+      act((ev.enabled?'◍ ':'⊘ ')+esc(ev.name)+' toggled '+(ev.enabled?'ON — available to the manager':'OFF — manager will not use it'), ev.enabled?'a-ok':'a-dim');
+      break;
+    case 'task_skipped':
+      act('⊘ task "'+esc(ev.name)+'" ('+esc(ev.agent)+') skipped — '+esc(ev.reason||'agent is toggled off'),'a-err');
+      break;
+    case 'task_waiting':
+      act('⧗ "'+esc(ev.name)+'" waiting on prerequisite task(s): '+(ev.deps||[]).map(esc).join(', '),'a-dim');
+      break;
+    case 'oversight_skipped':
+      act('⊘ '+esc(ev.agent)+' is toggled off — skipped '+esc(ev.action||''),'a-dim');
+      break;
+    case 'stop_requested':
+      act('■ STOP TASKS — manager ordered all agents to stop activities gracefully','a-err');
+      break;
+    case 'stop_dispatched':
+      statusOverride[ev.agent]='stopping'; act('■ stop instruction sent to '+esc(ev.agent),'a-dim');
+      break;
+    case 'stop_done':
+      act('■ '+esc(ev.agent)+' stopped — unfinished work documented in STOP_REPORT.md','a-ok');
+      break;
+    case 'stop_failed':
+      act('■ stop instruction to '+esc(ev.agent)+' failed: '+esc(ev.error||''),'a-err');
+      break;
+    case 'agent_added': assignSlot(ev.name, ev.role); mountCard(ev.name, null, ev.role, false, ev.model); applyModel(ev.name, ev.model); act('＋ '+esc(ev.role||ev.name)+' joined the team ('+esc(ev.name)+')','a-dim'); break;
+    case 'model_set': applyModel(ev.name, ev.model); act('⚙ '+esc(ev.name)+' AI model set to '+esc(ev.model),'a-info'); break;
+    case 'plan_started': act('◈ plan started: '+esc(ev.goal),'a-plan'); break;
+    case 'plan_ready': counts.planned = ev.tasks.length; counts.inflight = 0; syncCounts(); act('◈ plan ready → tasks: '+ev.tasks.map(esc).join(', '),'a-plan'); break;
+    case 'task_dispatched': counts.inflight++; syncCounts(); setTask(ev.agent, ev.name); statusOverride[ev.agent]='task: '+ev.name; act('→ dispatched "'+esc(ev.name)+'" to '+esc(ev.agent),'a-info'); break;
+    case 'task_done': counts.inflight = Math.max(0, counts.inflight-1); syncCounts(); setTask(ev.agent, null); act('✓ '+esc(ev.name)+' done: '+esc(ev.result||''),'a-ok'); break;
+    case 'task_failed': counts.inflight = Math.max(0, counts.inflight-1); syncCounts(); setTask(ev.agent, null); act('✗ '+esc(ev.name)+' failed: '+esc(ev.error||''),'a-err'); break;
+    case 'plan_complete': act('◈ all tasks complete ✓','a-ok'); break;
+    case 'plan_failed': act('◈ plan failed: '+esc(ev.error||'')+(ev.raw?' | raw: '+esc(ev.raw):''),'a-err'); break;
+    case 'log_written': act('✎ logger wrote "'+esc(ev.stage)+'" to RUN_SUMMARY.md','a-dim'); break;
+    case 'log_failed': act('✎ logger failed on "'+esc(ev.stage)+'": '+esc(ev.error||''),'a-err'); break;
+    case 'qa_queued': statusOverride.qa='checking'; act('⚖ qa queued review: '+esc(ev.agent)+' / '+esc(ev.name)+' (attempt '+ev.attempt+')','a-dim'); break;
+    case 'qa_verdict':
+      act(ev.verdict==='pass'
+        ? '⚖ QA PASS — '+esc(ev.agent)+' / '+esc(ev.name)+' (attempt '+ev.attempt+')'
+        : '⚖ QA NEEDS WORK — '+esc(ev.agent)+' / '+esc(ev.name)+': '+esc((ev.issues||[]).join('; ')),
+        ev.verdict==='pass' ? 'a-ok' : 'a-err');
+      break;
+    case 'qa_revision': act('⚖ auto-revision dispatched to '+esc(ev.agent)+' for "'+esc(ev.name)+'"','a-plan'); break;
+    case 'qa_revision_failed': act('⚖ revision failed on '+esc(ev.agent)+': '+esc(ev.error||''),'a-err'); break;
+    case 'qa_failed': act('⚖ qa review failed: '+esc(ev.error||''),'a-err'); break;
+    case 'audit_started': statusOverride.audit = ev.trigger==='manual' ? 'full check' : 'auditing'; act('◉ FULL compliance check started ('+esc(ev.trigger||'')+') — reviewing full workspace + policy.json','a-plan'); break;
+    case 'policy_snapshot_started':
+      setTileDirect('audit','snapshot check',true);
+      act('◉ compliance snapshot started — '+(ev.window_s||30)+'s policy watch window','a-dim');
+      break;
+    case 'policy_snapshot':
+      if(!document.getElementById('lamp-audit')?.classList.contains('on'))
+        setTileDirect('audit', ev.violations ? ev.violations+' violation(s)' : 'idle', false);
+      act('◉ compliance snapshot: '+ev.checked+' check(s), '+ev.violations+' violation(s)'
+          +(ev.critical?' ('+ev.critical+' critical)':''), ev.violations ? 'a-err' : 'a-ok');
+      break;
+    case 'audit_complete':
+      act('◉ COMPLIANCE '+esc((ev.overall||'').toUpperCase())+' — '+ev.findings+' findings ('
+          +ev.critical+' critical, '+ev.warn+' warn) → AUDIT.json + AUDIT.html',
+          ev.overall==='healthy' ? 'a-ok' : ev.overall==='attention' ? 'a-plan' : 'a-err');
+      break;
+    case 'audit_failed': act('◉ compliance check failed: '+esc(ev.error||''),'a-err'); break;
+    case 'report_started': statusOverride.report='doing report'; act('▤ report agent consolidating record + qa + audit…','a-plan'); break;
+    case 'finance_started': statusOverride.finance='tallying tokens'; act('¤ finance agent updating the token ledger ('+esc(ev.trigger||'')+')…','a-plan'); break;
+    case 'finance_complete': act('¤ FINANCE ledger updated — '+Number(ev.total||0).toLocaleString()+' tokens across '+ev.agents+' agent(s) → FINANCE.md','a-ok'); break;
+    case 'finance_failed': act('¤ finance update failed: '+esc(ev.error||''),'a-err'); break;
+    case 'token_usage': if(ev.runCost !== undefined) setCost(ev.runCost); break;
+    case 'report_complete':
+      act('▤ REPORT ready — '+esc(ev.headline||'')+' → REPORT.html '
+          +'<a href="'+withTok('/run/report')+'" target="_blank" style="color:#4ade80">open</a>','a-ok');
+      break;
+    case 'report_failed': act('▤ report failed: '+esc(ev.error||''),'a-err'); break;
+    case 'build_report_complete':
+      act('▤ BUILD REPORT ready — '+ev.docs+' .md doc(s) converted to HTML → BUILD_REPORT.html '
+          +'<a href="'+withTok('/run/build-report')+'" target="_blank" style="color:#4ade80">open</a>','a-ok');
+      break;
+  }
+}
+
+function setRunInfo(r){
+  document.getElementById('runinfo').textContent =
+    'run: '+r.id+' · started '+new Date(r.startedAt).toLocaleTimeString();
+}
+
+function act(html, cls){
+  const a = document.getElementById('activity');
+  const d = document.createElement('div');
+  d.className = 'ln '+(cls||'');
+  d.innerHTML = html;
+  a.appendChild(d);
+  a.scrollTop = a.scrollHeight;
+}
+
+function mountCard(name, sessionId, role, core, model){
+  if(mounted.has(name)) return;
+  mounted.add(name);
+  const el = document.createElement('section');
+  el.id = 'card-'+name;
+  el.className = 'card' + (name==='manager' ? ' manager' : name==='logger' ? ' logger' : name==='qa' ? ' qa' : name==='audit' ? ' audit' : name==='report' ? ' report' : name==='finance' ? ' finance' : name==='researcher' ? ' researcher' : '');
+  el.innerHTML = `
+    <div class="head">
+      <span class="lamp" id="lamp-${name}"></span>
+      <span class="who"><b>${esc(role||name)}</b><small>${esc(name)} · <span id="model-${name}">${esc(model||'default')}</span>${core?' · always-on':''}</small></span>
+      <span class="task" id="task-${name}"></span>
+      <span class="headspace"></span>
+      <span class="sid${sessionId?' has':''}" id="sid-${name}" title="session id">${sessionId ? sessionId.slice(0,8)+'…' : 'no session yet'}</span>
+      <button class="hbtn folder" title="Open this agent's run folder">&#128193;</button>
+      <button class="hbtn reset" data-agent="${name}">reset</button>
+      <button class="hbtn coll" title="Collapse / expand this card">&#9662;</button>
+    </div>
+    <div class="feed" id="feed-${name}"></div>
+    <div class="inbar">
+      <input id="in-${name}" placeholder="Direct this agent…" autocomplete="off">
+      <button class="send" id="btn-${name}">Send</button>
+    </div>`;
+  document.getElementById('cards').appendChild(el);
+
+  el.querySelector('[data-agent]').addEventListener('click', () => resetAgent(name));
+  el.querySelector('.folder').addEventListener('click', () =>
+    api(`/agent/${name}/open-folder`, {method:'POST'}));
+  const coll = el.querySelector('.coll');
+  coll.addEventListener('click', () => {
+    const c = el.classList.toggle('collapsed');
+    coll.innerHTML = c ? '&#9656;' : '&#9662;';
+  });
+  const input = el.querySelector(`#in-${name}`);
+  const btn = el.querySelector(`#btn-${name}`);
+  const send = () => sendMessage(name, input, btn);
+  btn.addEventListener('click', send);
+  input.addEventListener('keydown', e => { if(e.key==='Enter') send(); });
+  // no per-card EventSource: agent feeds arrive multiplexed on the single
+  // global /events stream (see boot) — one connection regardless of team size
+}
+
+async function sendMessage(name, input, btn){
+  const text = input.value.trim();
+  if(!text) return;
+  input.value=''; btn.disabled=true;
+  statusOverride[name] = 'direct task';  // manual sends get a real status, not a stale guess
+  setLamp(name,true);
+  const r = await api(`/agent/${name}/message`,{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({text})
+  });
+  if(r.status===409) addLine(name,'⏳ agent is mid-turn — wait for result','t-dim');
+  btn.disabled=false;
+}
+
+async function resetAgent(name){
+  await api(`/agent/${name}/reset`,{method:'POST'});
+  const sid = document.getElementById('sid-'+name);
+  sid.textContent='no session yet';
+  sid.classList.remove('has');
+}
+
+function setLamp(name,on){
+  document.getElementById('lamp-'+name)?.classList.toggle('on',on);
+  document.getElementById('card-'+name)?.classList.toggle('active',on);
+  setTile(name,on);
+  syncCounts();
+}
+
+function addLine(name, html, cls){
+  const feed = document.getElementById('feed-'+name);
+  if(!feed) return;
+  const d = document.createElement('div');
+  d.className = 'ln '+(cls||'');
+  d.innerHTML = html;
+  feed.appendChild(d);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+const esc = s => String(s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function render(name, ev){
+  switch(ev.type){
+    case 'hello': break;
+    case 'human': setLamp(name,true); addLine(name, '👤 '+esc(ev.text.slice(0,300)), 't-hu'); break;
+    case 'status': addLine(name, '· '+esc(ev.text), 't-dim'); break;
+    case 'system':
+      if(ev.subtype==='init'){
+        addLine(name, '· session '+esc((ev.session_id||'').slice(0,8))+'… ready', 't-dim');
+        const sid = document.getElementById('sid-'+name);
+        if(sid){ sid.textContent=(ev.session_id||'').slice(0,8)+'…'; sid.classList.add('has'); }
+      }
+      break;
+    case 'assistant':
+      for(const b of ev.message?.content||[]){
+        if(b.type==='text') addLine(name, esc(b.text), 't-text');
+        if(b.type==='tool_use') addLine(name, '⚙ '+esc(b.name)+' '+esc(JSON.stringify(b.input||{}).slice(0,120)), 't-tool');
+      }
+      break;
+    case 'user':
+      for(const b of ev.message?.content||[]){
+        if(b.type==='tool_result'){
+          const t = typeof b.content==='string' ? b.content : JSON.stringify(b.content);
+          addLine(name, '↳ '+esc(String(t).slice(0,160)), 't-dim');
+        }
+      }
+      break;
+    case 'result':
+      addLine(name, '✓ '+esc(ev.result||ev.subtype||'done'), 't-ok');
+      setLamp(name,false);
+      break;
+    case 'stderr': addLine(name, esc(ev.text), 't-dim'); break;
+    case 'proc_exit':
+      if(ev.code!==0) addLine(name, '✗ process exited with code '+ev.code, 't-tool');
+      setLamp(name,false);
+      break;
+  }
+}
+boot();
+</script>
+</body>
+</html>
