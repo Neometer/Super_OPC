@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Super OPC - Advanced Control Dashboard</title>
+<title>Super OPC - 牛逼智能总控</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -42,7 +42,11 @@ h1{
   -webkit-background-clip:text;background-clip:text;color:transparent;
 }
 .mode{
-  display:inline-flex;align-items:center;gap:6px;
+  /* status word next to the h1 is hidden for now — the state logic
+     (updateTitleState) still runs and the browser-tab title still shows
+     Live/Mock/Idle/Error; change display back to inline-flex to restore */
+  display:none;
+  align-items:center;gap:6px;
   font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;
   color:#859900;text-transform:uppercase;letter-spacing:0.08em;
 }
@@ -231,6 +235,76 @@ button.send{
 button.send:hover{filter:brightness(1.2);}
 button.send:disabled{opacity:.5;cursor:wait;}
 
+/* ===== tab navigation ===== */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;flex:0 0 auto;}
+.tab{
+  font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#586e75;
+  background:rgba(238,232,213,0.8);border:1px solid rgba(101,123,131,0.3);
+  border-radius:9px;padding:8px 18px;cursor:pointer;
+}
+.tab:hover{border-color:#268bd2;color:#268bd2;}
+.tab.active{
+  color:#041018;background:linear-gradient(90deg,#22d3ee,#67e8f9);
+  border-color:transparent;box-shadow:0 0 16px rgba(34,211,238,0.35);
+}
+.tabpanel{display:none;}
+.tabpanel.active{display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;}
+
+/* ===== info panels (Main / Why / How / Advantages) ===== */
+.info{
+  background:rgba(10,15,28,0.8);border:1px solid rgba(148,163,184,0.18);
+  border-radius:14px;padding:24px 28px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+  animation:pop .25s;
+}
+.info h2{
+  font-size:22px;font-weight:700;letter-spacing:-0.01em;margin-bottom:8px;
+  background:linear-gradient(90deg,#22d3ee,#a78bfa 70%,#d33682);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.info .lead{font-size:14.5px;color:#cbd5e1;line-height:1.7;max-width:960px;}
+.info .dim{font-size:12.5px;color:#64748b;line-height:1.65;margin-top:14px;}
+.info h3{font-size:14px;font-weight:700;color:#f1f5f9;margin:20px 0 10px;
+  text-transform:uppercase;letter-spacing:.08em;font-size:12px;color:#94a3b8;}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px;}
+.fcard{
+  background:rgba(2,6,17,0.6);border:1px solid rgba(148,163,184,0.14);
+  border-radius:12px;padding:14px 16px;
+}
+.fcard .ico{font-size:22px;line-height:1;}
+.fcard b{display:block;font-size:14px;color:#f1f5f9;margin:8px 0 4px;}
+.fcard p{font-size:12.5px;color:#94a3b8;line-height:1.6;}
+.fcard .big{font-size:26px;font-weight:700;color:#f1f5f9;display:block;margin-bottom:2px;
+  font-family:'JetBrains Mono',ui-monospace,monospace;}
+.flow{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;margin-top:16px;}
+.fstep{
+  flex:1;min-width:150px;display:flex;flex-direction:column;gap:5px;align-items:center;
+  text-align:center;background:rgba(2,6,17,0.6);border:1px solid rgba(34,211,238,0.22);
+  border-radius:12px;padding:14px 10px;
+}
+.fstep .ico{font-size:24px;}
+.fstep b{font-size:13px;color:#f1f5f9;}
+.fstep p{font-size:11.5px;color:#94a3b8;line-height:1.5;}
+.farrow{align-self:center;color:#22d3ee;font-size:18px;flex:none;padding:0 2px;}
+.info ul.checks{list-style:none;margin-top:12px;max-width:960px;}
+.info ul.checks li{
+  font-size:13px;color:#cbd5e1;line-height:1.65;padding:7px 0 7px 28px;position:relative;
+  border-bottom:1px dashed rgba(148,163,184,0.12);
+}
+.info ul.checks li::before{content:'✔';position:absolute;left:4px;color:#4ade80;}
+.info ul.checks b{color:#f1f5f9;}
+.tablewrap{overflow-x:auto;margin-top:12px;}
+.info table{border-collapse:collapse;width:100%;min-width:640px;font-size:12.5px;}
+.info th{
+  text-align:left;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;font-size:11px;
+  padding:8px 12px;border-bottom:1px solid rgba(148,163,184,0.25);white-space:nowrap;
+}
+.info td{color:#cbd5e1;line-height:1.55;padding:9px 12px;border-bottom:1px solid rgba(148,163,184,0.1);vertical-align:top;}
+.info td:first-child{color:#f1f5f9;font-weight:600;white-space:nowrap;}
+.info .hl{color:#22d3ee;}
+.gotab{color:#22d3ee;cursor:pointer;text-decoration:underline;}
+@media(max-width:900px){.grid3{grid-template-columns:1fr;}.flow{flex-direction:column;}.farrow{transform:rotate(90deg);}}
+
 @media(max-width:1500px){.cards{grid-template-columns:repeat(3,minmax(0,1fr));}.tiles{grid-template-columns:repeat(4,minmax(0,1fr));}}
 @media(max-width:1100px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));}.tiles{grid-template-columns:repeat(3,minmax(0,1fr));}}
 @media(max-width:900px){.orch{grid-template-columns:1fr;}}
@@ -240,7 +314,7 @@ button.send:disabled{opacity:.5;cursor:wait;}
 <body>
 <header class="topbar">
   <div class="brand">
-    <h1>Super OPC - Advanced Control Dashboard</h1>
+    <h1>Super OPC - 牛逼智能总控</h1>
     <span class="mode" id="mode"><span class="modedot"></span><span id="modeText">connecting…</span></span>
   </div>
   <div class="spacer"></div>
@@ -254,6 +328,154 @@ button.send:disabled{opacity:.5;cursor:wait;}
   </div>
 </header>
 
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="main">Main</button>
+  <button class="tab" data-tab="why">Why</button>
+  <button class="tab" data-tab="how">How</button>
+  <button class="tab" data-tab="adv">Advantages</button>
+  <button class="tab" data-tab="input">Input</button>
+  <button class="tab" data-tab="status">Status</button>
+  <button class="tab" data-tab="doing">Doing</button>
+</nav>
+
+<!-- ===== MAIN — non-technical overview ===== -->
+<div class="tabpanel active" id="tab-main">
+  <section class="info">
+    <h2>Your AI workforce — planned, checked, and priced on one page</h2>
+    <p class="lead">Super OPC lets one person run a whole team of AI agents. Describe what you need
+    in plain language; a Manager turns it into a plan, specialist workers carry it out in parallel,
+    and built-in Quality, Compliance and Finance staff review, audit and price every step —
+    automatically, with a complete paper trail you can hand to anyone.</p>
+
+    <div class="flow">
+      <div class="fstep"><span class="ico">📝</span><b>1 · You describe a mission</b><p>One sentence is enough — type it on the <span class="gotab" data-goto="input">Input</span> tab.</p></div>
+      <span class="farrow">➜</span>
+      <div class="fstep"><span class="ico">🧠</span><b>2 · The Manager plans</b><p>Breaks your goal into tasks and picks the right specialist for each.</p></div>
+      <span class="farrow">➜</span>
+      <div class="fstep"><span class="ico">👷</span><b>3 · The team executes</b><p>Workers and a standing Researcher work in parallel, live on screen.</p></div>
+      <span class="farrow">➜</span>
+      <div class="fstep"><span class="ico">⚖️</span><b>4 · Quality checks</b><p>Every output is reviewed; anything below the bar is sent back and fixed.</p></div>
+      <span class="farrow">➜</span>
+      <div class="fstep"><span class="ico">📁</span><b>5 · Evidence lands</b><p>Summary, QA report, audit, executive report and cost ledger — one folder.</p></div>
+    </div>
+
+    <div class="grid3">
+      <div class="fcard"><span class="ico">🤝</span><b>A team, not a chatbot</b><p>Manager, Researcher, workers, plus always-on Quality, Compliance, Reporter, Finance and Recorder staff — each with its own job.</p></div>
+      <div class="fcard"><span class="ico">🧾</span><b>Complete paper trail</b><p>Every action is recorded as it happens, by the system itself — not by an AI that could misremember.</p></div>
+      <div class="fcard"><span class="ico">💰</span><b>Live cost meter</b><p>Watch tokens and dollars tick in real time; every run ends with a finance ledger.</p></div>
+      <div class="fcard"><span class="ico">🕹️</span><b>You stay in control</b><p>Redirect any agent mid-run, switch team members on or off, or order a graceful stop with a written hand-over.</p></div>
+      <div class="fcard"><span class="ico">🛡️</span><b>Guard-rails built in</b><p>Agents work inside their own sandboxed folders with least-privilege tools and an enforced compliance policy.</p></div>
+      <div class="fcard"><span class="ico">🎬</span><b>Try it for free</b><p>Mock mode rehearses the entire pipeline — planning, review, audit, reports — without spending a cent.</p></div>
+    </div>
+
+    <p class="dim">Start on the <span class="gotab" data-goto="input">Input</span> tab, watch the team on
+    <span class="gotab" data-goto="status">Status</span>, and work with individual agents on
+    <span class="gotab" data-goto="doing">Doing</span>.</p>
+  </section>
+</div>
+
+<!-- ===== WHY ===== -->
+<div class="tabpanel" id="tab-why">
+  <section class="info">
+    <h2>Govern your AI agents — before someone else has to</h2>
+    <p class="lead">Your teams are already running AI agents on real work. The only question is whether
+    you can prove what they did, why, and at what cost — before a regulator or customer asks.</p>
+
+    <h3>The problem</h3>
+    <div class="grid3">
+      <div class="fcard"><span class="big">82%</span><p>of enterprises report AI agent activity their security team never approved.</p></div>
+      <div class="fcard"><span class="big">21%</span><p>have a mature AI-agent governance model — everyone else is exposed.</p></div>
+      <div class="fcard"><span class="big">Aug 2026</span><p>the EU AI Act's high-risk enforcement lands. Bolt-on governance won't be ready in time.</p></div>
+    </div>
+    <p class="dim">Today's agent frameworks give you execution — audit trails, policy enforcement and
+    cost control are left to extra tooling you assemble yourself.</p>
+
+    <h3>The Super OPC answer</h3>
+    <ul class="checks">
+      <li><b>Deterministic audit trail.</b> Every action is journaled by the server, immune to prompt-injection or model rewriting.</li>
+      <li><b>Enforced compliance policy.</b> A verdict can escalate but never be silently downgraded by a model.</li>
+      <li><b>Live cost ledger.</b> Real-time token and dollar accounting on every turn.</li>
+      <li><b>Human-in-the-loop control.</b> Redirect any agent mid-run, or halt gracefully with a documented stop report.</li>
+      <li><b>Radically inspectable.</b> One server, one dashboard file, no database — every run is a folder of plain files ready for an auditor.</li>
+      <li><b>Zero-cost evaluation.</b> A deterministic mock mode demos the full pipeline without spending a token.</li>
+    </ul>
+    <p class="dim">Competitors make you stitch together an orchestration engine and a separate governance
+    stack. Super OPC collapses both into one small, transparent system built specifically for Claude Code.</p>
+  </section>
+</div>
+
+<!-- ===== HOW ===== -->
+<div class="tabpanel" id="tab-how">
+  <section class="info">
+    <h2>How a mission becomes an auditable result</h2>
+    <p class="lead">Super OPC drives live, headless Claude Code agent sessions as one coordinated team,
+    streamed to this page in real time. The server keeps the deterministic record; the agents supply the
+    judgment — that separation is what makes every run trustworthy.</p>
+
+    <div class="flow">
+      <div class="fstep"><span class="ico">🎯</span><b>Plan</b><p>Your goal becomes a strict task list (max 4 tasks) — dependent tasks wait for their prerequisites.</p></div>
+      <span class="farrow">➜</span>
+      <div class="fstep"><span class="ico">⚡</span><b>Fan out</b><p>Tasks run in parallel on fresh workers, or route to the standing Researcher expert.</p></div>
+      <span class="farrow">➜</span>
+      <div class="fstep"><span class="ico">🔁</span><b>Review loop</b><p>Quality reviews every output; a fail auto-dispatches a revision on the worker's own session.</p></div>
+      <span class="farrow">➜</span>
+      <div class="fstep"><span class="ico">🔍</span><b>Audit</b><p>Compliance (toggle it ON to enable) cross-checks the whole run against the journal and the policy baseline once QA completes.</p></div>
+      <span class="farrow">➜</span>
+      <div class="fstep"><span class="ico">📊</span><b>Report</b><p>Reporter and Finance turn the run into an executive summary and a cost ledger.</p></div>
+    </div>
+
+    <h3>The team roster</h3>
+    <div class="grid3">
+      <div class="fcard"><span class="ico">🧠</span><b>Manager</b><p>Plans your goal into tasks and assigns the right agent to each. Always on.</p></div>
+      <div class="fcard"><span class="ico">🔬</span><b>Researcher</b><p>Standing expert with web access; keeps its memory across plans in a run.</p></div>
+      <div class="fcard"><span class="ico">👷</span><b>Workers × 4</b><p>Spawned per task with their own sandboxed folder, then available for your direct follow-ups.</p></div>
+      <div class="fcard"><span class="ico">⚖️</span><b>Quality</b><p>Reviews every output and drives the automatic fix-and-recheck loop.</p></div>
+      <div class="fcard"><span class="ico">🛡️</span><b>Compliance</b><p>Independent auditor of everything — including Quality itself. OFF by default; enable from its tile.</p></div>
+      <div class="fcard"><span class="ico">🧾</span><b>Recorder · Reporter · Finance</b><p>Narrate the run log, consolidate the executive report, and keep the token ledger.</p></div>
+    </div>
+
+    <h3>What every run leaves behind</h3>
+    <p class="lead">A self-contained folder: the event journal (ground truth), <span class="hl">RUN_SUMMARY</span>,
+    <span class="hl">QA_REPORT</span>, <span class="hl">AUDIT</span>, <span class="hl">REPORT</span>,
+    <span class="hl">FINANCE</span> ledger and a consolidated <span class="hl">BUILD_REPORT</span> —
+    all plain files, all rendered to HTML by the server so the markup is always valid.</p>
+    <p class="dim">Mock mode reproduces this entire pipeline deterministically — demos, training and CI
+    without a Claude CLI or any API spend.</p>
+  </section>
+</div>
+
+<!-- ===== ADVANTAGES ===== -->
+<div class="tabpanel" id="tab-adv">
+  <section class="info">
+    <h2>Why Super OPC over a framework + bolt-ons</h2>
+    <p class="lead">The market pattern is "pick an execution engine, then bolt governance on separately."
+    Super OPC collapses that into one small, inspectable system — at the moment regulation is making
+    governance mandatory.</p>
+
+    <div class="grid3">
+      <div class="fcard"><span class="ico">🏛️</span><b>Compliance &amp; cost are first-class</b><p>Journal, policy auditor and cost ledger live inside the orchestration server — no observability stack to integrate.</p></div>
+      <div class="fcard"><span class="ico">🔒</span><b>A record that can't be gamed</b><p>Timestamps, journaling and policy checks are deterministic server code — prompt injection can't rewrite history, and verdicts only ever escalate.</p></div>
+      <div class="fcard"><span class="ico">🎯</span><b>Purpose-built for Claude Code</b><p>Deep, narrow integration: session resume, stream events, Windows CLI quirks — not a lowest-common-denominator abstraction.</p></div>
+      <div class="fcard"><span class="ico">🪶</span><b>Minimal footprint</b><p>One Express server, one dashboard file, no database, no DSL to learn — the whole system and its evidence are plain files.</p></div>
+      <div class="fcard"><span class="ico">🎬</span><b>Demoable without spend</b><p>Deterministic mock mode reproduces the full pipeline, including the QA fail-and-fix loop, at zero cost.</p></div>
+      <div class="fcard"><span class="ico">🕹️</span><b>Human-in-the-loop by design</b><p>Persistent sessions let you redirect any agent mid-run; a graceful stop produces documented partial results, not a kill.</p></div>
+    </div>
+
+    <h3>Competitor context</h3>
+    <div class="tablewrap">
+      <table>
+        <tr><th>Tool</th><th>Where it's strong</th><th>Gap vs. Super OPC</th></tr>
+        <tr><td>LangGraph</td><td>Production-ready graph engine for complex stateful workflows</td><td>Audit trails, policy baselines and cost ledgers are DIY or separate tooling</td></tr>
+        <tr><td>CrewAI</td><td>Lowest learning curve, fastest prototyping</td><td>Teams outgrow it in production; no built-in compliance or audit layer</td></tr>
+        <tr><td>AutoGen / AG2</td><td>Rich multi-party conversation patterns</td><td>Maintenance mode; in-memory history, weaker durable audit story</td></tr>
+        <tr><td>GRC / observability add-ons</td><td>Deep tracing and compliance reporting</td><td>Separate product and integration — not native to the orchestration loop</td></tr>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- ===== INPUT — mission input & plan lifecycle ===== -->
+<div class="tabpanel" id="tab-input">
 <section class="orch">
   <div class="orch-title"><b>Input Tasks</b><span>custom workers and LLM models supported</span></div>
   <div class="orch-left">
@@ -270,12 +492,32 @@ button.send:disabled{opacity:.5;cursor:wait;}
   </div>
   <div class="activity" id="activity"></div>
 </section>
+</div>
 
+<!-- ===== STATUS — team status tiles ===== -->
+<div class="tabpanel" id="tab-status">
 <section class="tiles" id="tiles"></section>
+</div>
 
+<!-- ===== DOING — live agent cards ===== -->
+<div class="tabpanel" id="tab-doing">
 <main class="cards" id="cards"></main>
+</div>
 
 <script>
+// ===== tab navigation =====
+// panels stay mounted while hidden, so SSE events keep updating every
+// tile/card/feed in the background — switching tabs never loses state
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+}
+document.querySelectorAll('.tab').forEach(btn =>
+  btn.addEventListener('click', () => showTab(btn.dataset.tab)));
+// in-page "go to tab" links inside the info panels
+document.querySelectorAll('.gotab').forEach(el =>
+  el.addEventListener('click', () => showTab(el.dataset.goto)));
+
 const mounted = new Set();
 
 // token auth: server prints the dashboard URL with ?token=... when enabled
@@ -370,7 +612,7 @@ function updateTitleState(){
                    Idle: 'no task running — give a goal or direct an agent',
                    Error: 'connection to the server lost — is it still running?' }[state];
   document.getElementById('modeText').textContent = state;
-  document.title = 'Super OPC - Advanced Control Dashboard — ' + state;
+  document.title = 'Super OPC - 牛逼智能总控 — ' + state;
 }
 
 // ===== team status tiles =====
