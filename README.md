@@ -1,6 +1,8 @@
 # Super OPC Starter
 
 Mission Control Browser dashboard driving live **Claude Code** agent sessions.
+![Uploading image.png…]()
+
 
 ## Quick start
 
