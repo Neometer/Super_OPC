@@ -33,6 +33,8 @@ Notes:
 Browser (public/index.html)  ←fetch POST / SSE→  server.js  ←spawn/--resume→  claude -p sessions
 ```
 
+**Intro tab:** the splash hero (headline, terminal vignette, "SUPER OPC - 起动" button) lives inside the dashboard as the first tab ("Intro", left of "Main") and is the default view on load; the 起动 button switches to the Input tab. `GET /` serves the dashboard directly.
+
 **Runs.** Every boot (or `POST /run/new`) creates `runs/<runId>/` — the workspace for that run: `run.json` (metadata), `events.jsonl` (server-written journal, the ground truth), `policy.json` (snapshot of the compliance baseline, copied in at run start so the audit agent can read it inside the workspace boundary), `RUN_SUMMARY.md`, `QA_REPORT.md`, `AUDIT.json/html`, `REPORT.json/html`, `FINANCE.md` (token ledger), `BUILD_REPORT.html`, `sessions.json` (agentName → claude session_id), and `agents/<name>/` per-agent workspaces.
 
 **Agents.** Two kinds:
