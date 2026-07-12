@@ -58,7 +58,7 @@ The `audit` agent independently reviews the **entire run workspace, including th
 
 Triggers (only while the agent is toggled ON): automatically once QA has fully completed — an empty review queue with no tasks or revisions still in flight — on run end, or manually via the "compliance check" button / `POST /audit`. There is no periodic background check. One audit at a time; triggers during an audit queue a re-run. The audit snapshots the run directory at start, so a run rotation mid-audit can't corrupt it.
 
-## The Quality agent + auto-revision loop
+## The Quality Inspector + auto-revision loop
 
 An always-on `qa` agent (workspace = run root, like the logger) reviews **every worker output** — both orchestrated tasks and human-directed worker turns:
 
@@ -69,7 +69,11 @@ An always-on `qa` agent (workspace = run root, like the logger) reviews **every 
 
 In mock mode the loop is demoable deterministically: "build"-type tasks fail attempt 1 with concrete issues, revision is dispatched, attempt 2 passes — so you can rehearse the full story without burning tokens. An unparseable QA verdict defaults to pass (logged) rather than blocking the pipeline.
 
-## The Report agent 
+## The Researcher
+
+**Standing Researcher agent (`researcher`, always-on)** — a permanent expert task-taker (unlike the oversight agents, it *receives* tasks). It keeps its session across plans within a run, gets `WebSearch`/`WebFetch` on top of the file tools (see `opc.config.json`), and its outputs are QA-reviewed like any worker's — including human-directed turns. Add more standing experts by extending `STANDING_EXPERTS` in `server.js`; the manager's planning prompt lists them automatically.
+
+## The Reporter
 
 A Report agent (`report`, always-on) — consolidates the record keeper's `RUN_SUMMARY.md`, qa's `QA_REPORT.md`, and the auditor's `AUDIT.json` into one executive summary. Runs automatically after every completed audit, or on demand via the "build report" button (`POST /report`). Like the audit, the agent returns structured JSON and the **server** renders the markup deterministically: `REPORT.json` + `REPORT.html` in the run folder, also served live at `GET /run/report`
 

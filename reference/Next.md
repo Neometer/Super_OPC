@@ -17,3 +17,8 @@ claude -p "say hi" --output-format stream-json --verbose | head -5
 Notes:
 - `--output-format stream-json` requires `--verbose` in print mode on current CLI versions; if your version differs, adjust `runClaudeTurn()`.
 - Turns take 10–60+ s. The tool-activity lines keep the audience engaged.
+
+## "New Run" button
+
+Add a "New Run" button on the top bar.
+Will refresh the html including the Claude Code CLI.

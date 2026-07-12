@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OPC Dashboard</title>
+<title>Super OPC - Advanced Control Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -240,13 +240,14 @@ button.send:disabled{opacity:.5;cursor:wait;}
 <body>
 <header class="topbar">
   <div class="brand">
-    <h1>OPC Dashboard</h1>
+    <h1>Super OPC - Advanced Control Dashboard</h1>
     <span class="mode" id="mode"><span class="modedot"></span><span id="modeText">connecting…</span></span>
   </div>
   <div class="spacer"></div>
   <span class="runchip" id="runinfo">run: …</span>
   <div class="tbtns">
-    <button class="tbtn" id="newRunBtn" title="End current run, start a fresh run folder">new run</button>
+    <!-- "new run" button removed from the UI — POST /run/new stays available
+         server-side; re-add the button here for future implementation -->
     <button class="tbtn" id="auditBtn" title="Run a FULL compliance check now — audit agent + policy.json verification over the whole run workspace. The Compliance agent is OFF by default; toggle it ON on its tile, and it audits automatically once QA has completed">compliance check</button>
     <button class="tbtn" id="reportBtn" title="Convert run .md files to HTML and consolidate everything into BUILD_REPORT.html">build report</button>
     <button class="tbtn" id="folderBtn" title="Open this run's folder in your file manager">&#128193; run folder</button>
@@ -326,10 +327,13 @@ async function boot(){
     stopBtn.disabled = false;
   });
 
-  document.getElementById('newRunBtn').addEventListener('click', async () => {
-    await api('/run/new', {method:'POST'});
-    location.reload(); // fresh cards + fresh sessions for the new run folder
-  });
+  // "new run" is removed from the UI for now — kept for future implementation.
+  // The server route POST /run/new still works (e.g. via curl). To restore,
+  // re-add the #newRunBtn button in the topbar and uncomment:
+  // document.getElementById('newRunBtn').addEventListener('click', async () => {
+  //   await api('/run/new', {method:'POST'});
+  //   location.reload(); // fresh cards + fresh sessions for the new run folder
+  // });
 
   document.getElementById('auditBtn').addEventListener('click', () =>
     api('/audit', {method:'POST'}));
@@ -366,7 +370,7 @@ function updateTitleState(){
                    Idle: 'no task running — give a goal or direct an agent',
                    Error: 'connection to the server lost — is it still running?' }[state];
   document.getElementById('modeText').textContent = state;
-  document.title = 'OPC Dashboard — ' + state;
+  document.title = 'Super OPC - Advanced Control Dashboard — ' + state;
 }
 
 // ===== team status tiles =====
