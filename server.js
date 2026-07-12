@@ -2111,7 +2111,9 @@ function runMockTurn(agent, text, resolve) {
   const sid = sessions[agent] || `mock-${Math.random().toString(36).slice(2, 8)}`;
   sessions[agent] = sid; saveSessions();
 
-  const isPlanning = agent === "manager" && /Respond with ONLY a JSON/.test(text);
+  // match both planning-prompt phrasings ("Respond with ONLY a JSON ..." and
+  // the delegation prompt's "reply must be ONLY this JSON object")
+  const isPlanning = agent === "manager" && /ONLY (a|this) JSON/.test(text);
   const isStop = /^STOP COMMAND/.test(text);
   // mock manager honors the agent toggles, like the live prompt instructs;
   // the summarize task demos dependency management — it waits for the others
