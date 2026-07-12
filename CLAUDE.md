@@ -67,7 +67,7 @@ Browser (public/index.html)  ←fetch POST / SSE→  server.js  ←spawn/--resum
 
 **Workspace boundary:** headless sessions can't answer permission prompts, so the sandbox is cwd + `--add-dir` — file access outside it is simply denied. Agents with `"workspaceAccess": "own"` in config are confined to their folder. The `--add-dir` path is derived from the agent's workdir, not global state — keep it that way for rotation/snapshot safety.
 
-**Configuration:** `opc.config.json` holds all defaults (models, allowedTools, permissionMode, orchestration caps). Per-agent resolution: `defaults` ⊕ `worker-*` wildcard ⊕ exact-name entry (`cfgFor()`). Env vars `HOST`/`PORT`/`AUTH_TOKEN` override server settings. Invalid config JSON fails boot loudly — preserve that. Effective config is served at `GET /config` (never the token).
+**Configuration:** `opc.config.json` holds all defaults (models, allowedTools, permissionMode, orchestration caps). Per-agent resolution: `defaults` ⊕ `worker-*` wildcard ⊕ exact-name entry (`cfgFor()`). Env vars `HOST`/`PORT`/`AUTH_TOKEN` override server settings, and `ALLOWED_TOOLS` overrides the default tool list (note: `checkPolicy()` flags a live `ALLOWED_TOOLS` override as a policy violation). Invalid config JSON fails boot loudly — preserve that. Effective config is served at `GET /config` (never the token).
 
 **Mock mode** mirrors the whole pipeline deterministically (planning JSON, QA fail-then-pass on "build" tasks, real files written to workspaces) so features must stay demoable there — when adding a live-mode behavior, add its mock counterpart (`runMockTurn`, `mockQaReview`, `mockAudit`, `mockReport`, `mockLoggerSummary`, `mockFinance`; mock turns also carry deterministic fake `usage` so the token ledger works).
 
