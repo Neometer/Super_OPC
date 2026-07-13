@@ -27,23 +27,24 @@ npm stop
 
 ## How it works
 
-Refer to
+Refer to OPC_Overview.html.
 
 
 ## Dashboard Features
 
 - **Open run folder** — a 📁 button that opens the current run folder root in your OS file manager; the run strip has a "📁 run folder" button for the run root
 
-## Manager → worker orchestration
 
-Type a goal in the top bar (or `POST /orchestrate {goal}`) and the server runs the OPC pattern:
+## Ochestration
+
+Type a goal in the top bar and the server runs the OPC dashbord:
 
 1. **Manager plans.** The goal is wrapped in a prompt requiring strict JSON: `{"tasks":[{"name":"research","prompt":"…"}]}` (max 4 tasks).
 2. **Server parses.** `extractPlan()` tolerates markdown fences and surrounding prose; if parsing fails you get a `plan_failed` event with the raw text.
 3. **Workers spawn in parallel.** Each task gets its own agent (`worker-<name>`), created on the fly with its own workspace and session. Cards appear on the dashboard automatically via the global `/events` SSE channel.
 4. **Lifecycle streams live:** `plan_started → plan_ready → task_dispatched → task_done/task_failed → plan_complete` in the activity strip, while each worker's card shows its tool calls in real time.
 
-Workers keep their sessions, so after a plan completes you can direct any worker individually ("now add pricing to the page") from its card — the human-in-the-loop on top of autonomous execution. That two-beat demo (autonomous plan, then human steering) is exactly the "sovereignty" judging theme.
+Workers keep their sessions, so after a plan completes you can direct any worker individually ("now add pricing to the page") from its card — the human-in-the-loop on top of autonomous execution. That two-beat demo (autonomous plan, then human steering) is implementing "Control". Workers keep their sessions, so you can review every detail and fine-tune future runs.
 
 ## The Team-aware Manager 
 
