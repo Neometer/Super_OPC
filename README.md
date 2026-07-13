@@ -4,6 +4,10 @@ Mission Control Browser dashboard driving live **Claude Code** agent sessions.
 
 <img width="2856" height="1170" alt="sample01" src="https://github.com/user-attachments/assets/7df6cc10-d18c-4ee7-ae57-00d238fb50c0" />
 
+## Pre-requisite 
+
+Claude Code subscription.
+
 ## Quick start
 
 ```bash
