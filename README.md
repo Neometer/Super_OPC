@@ -7,6 +7,7 @@ Mission Control Browser dashboard driving live **Claude Code** agent sessions.
 ## Pre-requisite 
 
 Claude Code subscription.
+Claude Code installed.
 
 ## Quick start
 
@@ -17,7 +18,7 @@ npm install
 # try it immediately, no Claude CLI needed:
 npm run mock          # then open http://localhost:3000
 
-# go live (requires Claude Code installed + authenticated, run from claude code):
+# go live (run from claude code):
 npm start
 
 # stop gracefully from another terminal (same as Ctrl-C: writes run_ended):
@@ -26,17 +27,12 @@ npm stop
 
 ## How it works
 
-| Piece | File | Job |
-|---|---|---|
-| Dashboard | `public/index.html` | One card per agent: live transcript, tool activity, input box |
-| Server | `server.js` | `POST /agent/:id/message` spawns/resumes claude; `GET /agent/:id/stream` forwards stream-json via SSE |
-| Sessions | `sessions.json` | Persists agentName → session_id across server restarts |
-| Workspaces | `workspaces/<agent>/` | Each agent gets its own cwd so parallel agents don't clobber files |
+Refer to
+
 
 ## Dashboard Features
 
-- **Open run folder** — a 📁 button on every card opens that agent's workspace for the current run in your OS file manager (`open`/`explorer`/`xdg-open`); the run strip has a "📁 run folder" button for the run root. Server endpoints: `POST /agent/:id/open-folder`, `POST /run/open-folder`.
-- **Collapsible cards** — each agent card has a ▾/▸ toggle in its header that collapses the feed and input bar, keeping just the status header visible.
+- **Open run folder** — a 📁 button that opens the current run folder root in your OS file manager; the run strip has a "📁 run folder" button for the run root
 
 ## Manager → worker orchestration
 
